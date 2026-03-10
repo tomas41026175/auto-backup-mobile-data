@@ -1,0 +1,19 @@
+{
+  "task_id": "TASK-002",
+  "title": "mDNS 裝置偵測 + 通知 + Mock 備份",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-10T09:41:02Z",
+      "ended": "2026-03-10T10:10:00Z",
+      "duration_minutes": 29,
+      "outcome": "COMPLETE",
+      "summary": "實作 DeviceScanner（mDNS 被動監聽 + 主動 query + TCP ping + 30 秒 debounce）、NotificationService（Windows 通知 + GC 防護移至 closure）、MockBackupManager（進度 0→100%、路徑驗證、方向驗證）、SettingsStore / BackupHistoryStore（electron-conf）、ipc-handlers（12 個 channels 全覆蓋）；CR 修正 7 個問題（移除 dead variable、多餘 progress emit、型別不符、未使用 import）；單元測試 20/20 通過，typecheck 通過",
+      "acceptance_passed": true,
+      "retry_reason": null,
+      "interrupted": false
+    }
+  ],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

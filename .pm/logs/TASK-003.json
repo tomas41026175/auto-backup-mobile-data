@@ -1,0 +1,7 @@
+{
+  "task_id": "TASK-003",
+  "title": "Settings 頁面（裝置配對 + 路徑設定 + 手動 IP）",
+  "runs": [{"run_id": 1, "started": "2026-03-10T09:41:02Z", "ended": "2026-03-10T10:30:00Z", "duration_minutes": 49, "outcome": "COMPLETE", "summary": "實作 Settings 頁面全部元件：settings-store（Zustand+IPC）、PathPicker（路徑驗證）、DeviceList（mDNS掃描+配對+accordion設定）、ManualDeviceInput（IPv4驗證+TCP探測）、Settings頁面組合，typecheck 通過，CR 修復 scan 競爭條件與 unpairing UX", "acceptance_passed": true, "interrupted": false}],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

@@ -1,0 +1,19 @@
+{
+  "task_id": "TASK-001",
+  "title": "專案初始化 + IPC 型別層 + Tray 常駐",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-10T09:20:35Z",
+      "ended": "2026-03-10T10:05:00Z",
+      "duration_minutes": 45,
+      "outcome": "COMPLETE",
+      "summary": "使用 electron-vite 初始化專案，定義 16 個 IPC channels、共用型別、System Tray 常駐、視窗關閉只 hide 不 quit，TypeScript typecheck 全部通過",
+      "acceptance_passed": true,
+      "retry_reason": null,
+      "interrupted": false
+    }
+  ],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

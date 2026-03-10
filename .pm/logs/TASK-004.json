@@ -1,0 +1,18 @@
+{
+  "task_id": "TASK-004",
+  "title": "Dashboard + 備份歷史 + Router",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-10T09:41:02Z",
+      "ended": "2026-03-10T10:35:00Z",
+      "duration_minutes": 54,
+      "outcome": "COMPLETE",
+      "summary": "Dashboard（4 狀態）+ History（篩選）+ App Router + Zustand app-store 實作完成，CR 修復 5 個問題（HMR 閉包、console.error、elapsed time 靜態、failCount 語義、settingsLoading 閃爍），typecheck 通過",
+      "acceptance_passed": true,
+      "interrupted": false
+    }
+  ],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

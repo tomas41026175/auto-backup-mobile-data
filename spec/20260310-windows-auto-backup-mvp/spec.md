@@ -28,13 +28,17 @@
 - 構建工具：electron-vite（HMR 較好）
 - 目錄結構：electron-vite 標準 -- `src/main/`、`src/preload/`、`src/renderer/`、`src/shared/`
 - 平台：Windows（暫不考慮跨平台）
-- 偵測方式：mDNS/Bonjour（`bonjour-service` 純 JS 套件），主要監聽 `_companion-link._tcp`，備援 `_airplay._tcp`
-- mDNS 主動查詢：iPhone 螢幕鎖定後可能停止廣播，需加入定期主動 query 模式（每 60 秒）作為被動監聽的補充
+- 偵測方式：mDNS/Bonjour（`bonjour-service` 純 JS 套件），監聽 `_companion-link._tcp`（iPhone 不廣播 `_airplay._tcp`，不設備援；偵測失敗有手動 IP Plan B）
+- mDNS 主動查詢：iPhone 螢幕鎖定後可能停止廣播，需加入定期主動 query 模式（每 60 秒，使用 `browser.update()` 重送 PTR 查詢）作為被動監聯的補充
 - mDNS 自我檢測：啟動時驗證 mDNS 可用性，不可用時在 UI 顯示警告
 - 通知方式：Windows 原生系統通知（Electron Notification API）
+- 傳輸方向：每台已配對裝置獨立設定 syncDirection（`mobile-to-pc` | `pc-to-mobile` | `bidirectional`），MVP 僅實作 `mobile-to-pc`，其餘為 Post-MVP
+- 同步檔案類型：每台裝置獨立設定 syncTypes（`photos` | `videos` | `screenshots` | `slowmo` | `documents` | `voice`），預設 `['photos', 'videos', 'screenshots']`
+- PC → Mobile 方案（Post-MVP）：WiFi HTTP Server（PC 端）+ 配套 iOS App（URLSession + Document Provider），需獨立 iOS 開發工作，不在 MVP 範圍
+- PC → Mobile Windows 依賴：AFC/USB 方案依賴 iTunes/AMDS，Windows 環境差異大；WiFi 方案受 iOS 背景限制，iPhone App 需在前景或使用 Background URLSession；選擇 WiFi HTTP 為 Post-MVP 路線
 - 傳輸方式：MVP 階段用 mock 模擬，不做實際傳輸
 - 備份路徑：使用者設定固定磁碟代號 + 子目錄（如 `D:\Backup\iPhone`），啟動備份前驗證路徑存在
-- 資料儲存：electron-store（設定 + 備份歷史），僅限 main process 存取，renderer 透過 IPC
+- 資料儲存：`electron-conf`（取代 electron-store，ESM/CJS 皆支援，避免 electron-store v9+ 純 ESM 與 electron-vite CJS 衝突），僅限 main process 存取，renderer 透過 IPC
 - iPhone 端：MVP 不開發 iOS app
 - 常駐方式：System Tray icon
 - IPC 通訊：`@electron-toolkit/typed-ipc` type map，集中定義於 `src/shared/ipc-channels.ts`
@@ -43,7 +47,16 @@
 - 配對機制：偵測到的裝置列表中，使用者手動點擊「配對」綁定，僅已配對裝置觸發通知
 - 手動新增裝置（Plan B）：Settings 頁面提供 IP 輸入欄位 + TCP 探測，當 mDNS 無法偵測時作為備援
 - Main Process 結構：`main.ts` 負責 bootstrap（建構所有 service 實例並傳入），IPC handler 拆分至 `src/main/ipc-handlers.ts`
-- 測試框架：Vitest
+- 測試框架：Vitest（v3.x，使用 `test.projects` 分離 main/renderer 測試環境）
+- GC 防護規範：Tray 必須模組層級全域變數；Notification 物件保存至 `Set<Notification>` 防 GC 回收 click 事件；Bonjour 實例全域宣告 + `app.on('before-quit')` 呼叫 `destroy()`
+- 初始化順序（Main Process）：`app.setAppUserModelId()` -> `app.whenReady()` -> `createWindow()` -> `createTray()` -> `initBonjour()` -> `initStores()` -> `setupIpcHandlers()`
+- 初始化順序（Renderer）：`initializeStores()`（IPC invoke 同步初始狀態）-> `setupIpcListeners()`（建立 push 監聽）-> render UI
+- AppUserModelId：開發環境 `app.setAppUserModelId(process.execPath)`，生產環境使用 `com.autobackup.app`，必須在 `app.whenReady()` 之前呼叫
+- Windows 通知焦點 workaround：通知點擊 handler 中 `win.setAlwaysOnTop(true)` -> `win.focus()` -> `win.setAlwaysOnTop(false)`
+- IPC type map 結構：使用 union 型別分拆 listener map 和 handler map（`@electron-toolkit/typed-ipc` 要求）
+- Zustand 版本約束：v5.x，物件 selector 必須用 `useShallow` 包裝，否則拋 "Maximum update depth exceeded"
+- Renderer IPC listener cleanup：所有 `on()` 返回的 unsubscribe 函式必須在 useEffect cleanup 中呼叫
+- electron-builder 打包：`bonjour-service` 為純 JS 套件，不需 `asarUnpack` 或 `electron-rebuild`
 
 ## Non-Goals
 
@@ -53,9 +66,10 @@
 - **Code signing**：MVP 不做程式碼簽章（接受 Windows SmartScreen 警告）
 - **E2E 測試**：僅做 unit + integration 測試
 - **離線恢復**：MVP 備份為 mock，不存在真實中斷恢復場景
-- **electron-store 損壞恢復**：機率極低，延後處理
-- **iOS app 開發**：不開發配套 iOS 應用
-- **跨平台支援**：僅 Windows
+- **electron-conf 資料損壞恢復**：機率極低，延後處理
+- **iOS app 開發**：PC → Mobile 需配套 iOS App（Document Provider Extension + URLSession），這是獨立工作量（2-3 週 MVP），需 App Store 審核（3-5 天），延後到 Windows MVP 驗證後再啟動
+- **跨平台支援**：MVP 僅 Windows。macOS 版本為 Post-MVP，架構已預留 `process.platform` guard 空間（詳見 `docs/adr-cross-platform.md`）。macOS 公開發佈需要 Apple Developer 帳號（$99/年）+ Code Signing + Notarization
+- **PC → Mobile 雙向同步**：Post-MVP，需 iOS 配套 App + PC 端 HTTP Server，研究已完成（見 `docs/research/pc-to-mobile/`）
 - **實際檔案傳輸**：備份流程全部 mock
 
 ## Architecture Review Notes
@@ -66,13 +80,19 @@
 - ~~離線中斷恢復~~ -> MVP 備份為 mock，不需要中斷恢復機制
 - ~~mDNS 健康檢查~~ -> 簡化為啟動時自我檢測，不做持續健康檢查
 - ~~electron-store 損壞恢復~~ -> MVP 不做，機率極低
-- ~~`_apple-mobdev2._tcp`~~ -> `_companion-link._tcp`（主）+ `_airplay._tcp`（備援），前者在 iPhone 上更可靠
+- ~~`_apple-mobdev2._tcp`~~ -> `_companion-link._tcp`（僅此一個，iPhone 不廣播 `_airplay._tcp`，偵測失敗有手動 IP Plan B）
 - ~~`electron/` + `shared/` + `src/` 平鋪~~ -> electron-vite 標準目錄 `src/main/`、`src/preload/`、`src/renderer/`、`src/shared/`
 - ~~8 個 Task~~ -> 合併為 5 個 Task，每個 Task 有可 demo 的產出
 - ~~原生 IPC channel 字串~~ -> `@electron-toolkit/typed-ipc` type map，型別安全
 - ~~electron-store 直接在 renderer 存取~~ -> 僅限 main process，renderer 透過 IPC
+- ~~electron-store~~ -> `electron-conf`（electron-store v9+ 純 ESM 與 electron-vite CJS 衝突，改用 electron-conf）
+- ~~`_airplay._tcp` 備援~~ -> 移除（iPhone 不廣播此服務，R6 研究確認）
 - BackupManager 定義 interface，方便未來接真實傳輸
 - BackupHistoryRepository interface 抽象，未來需要 SQLite 時替換實作即可
+- `BackupManager` interface 擴充預留：interface 加入 `direction: SyncDirection` 參數（透過 `BackupTask` 物件），型別定義於 `src/shared/types.ts`，MockBackupManager 只實作 `mobile-to-pc`，介面已準備好未來接 `pc-to-mobile` 實作
+- per-device 設定結構：settings-store 的 `PairedDevice` 物件加入 `syncDirection: SyncDirection` 和 `syncTypes: SyncFileType[]` 欄位，統一定義於 `src/shared/types.ts`
+- 序列化邊界規則：Store 層（electron-conf）和 IPC 傳輸統一使用 `SyncFileType[]`（Array）；Renderer 端 Zustand store 內部可轉為 `Set<SyncFileType>` 方便 UI 操作，但進出 IPC 邊界必須轉回 Array（`Set` 無法 JSON.stringify）
+- `BackupRecord` 新增 `syncTypes: SyncFileType[]` 和 `direction: SyncDirection` 欄位，記錄每次備份的檔案類型和方向；MVP History 頁面不做按 syncTypes 篩選
 
 ---
 
@@ -318,6 +338,7 @@ app 啟動
 | `pair-device` | renderer → main | 配對按鈕 | `Device` → `void` | 配對裝置 |
 | `unpair-device` | renderer → main | 取消配對 | `string`(deviceId) → `void` | 取消配對 |
 | `add-device-manual` | renderer → main | 手動 IP 輸入 | `string`(ip) → `Device \| null` | TCP 探測 + 新增裝置 |
+| `update-device-config` | renderer → main | 裝置設定變更 | `{ deviceId: string, syncDirection?: SyncDirection, syncTypes?: SyncFileType[] }` → `void` | 更新裝置的 syncDirection / syncTypes（Post-MVP 啟用） |
 | `start-backup` | renderer → main | 立即備份按鈕 | `string`(deviceId) → `void` | 啟動備份 |
 | `cancel-backup` | renderer → main | 取消備份按鈕 | → `void` | 取消備份 |
 | `get-history` | renderer → main | History 頁面載入 | → `BackupRecord[]` | 讀取備份歷史 |
@@ -326,6 +347,49 @@ app 啟動
 | `backup-progress` | main → renderer | MockBackupManager | `BackupJob` | 備份進度推送 |
 | `backup-complete` | main → renderer | 備份完成 | `BackupRecord` | 備份完成推送 |
 | `mdns-status` | main → renderer | mDNS 自我檢測 | `boolean` | mDNS 可用性狀態推送 |
+
+---
+
+## Shared Types（src/shared/types.ts）
+
+```typescript
+// === 雙向同步型別（R10 新增）===
+
+export type SyncDirection = 'mobile-to-pc' | 'pc-to-mobile' | 'bidirectional'
+
+export type SyncFileType = 'photos' | 'videos' | 'screenshots' | 'slowmo' | 'documents' | 'voice'
+
+export const DEFAULT_SYNC_TYPES: SyncFileType[] = ['photos', 'videos', 'screenshots']
+
+// === 裝置型別（R10 擴充）===
+
+export interface PairedDevice {
+  id: string          // UUID
+  name: string        // mDNS 偵測到的裝置名稱
+  ip: string          // IP 位址
+  addedAt: number     // timestamp
+  syncDirection: SyncDirection    // 傳輸方向，MVP 僅支援 mobile-to-pc
+  syncTypes: SyncFileType[]       // 要同步的檔案類型
+}
+
+// === 備份任務（R10 擴充）===
+
+export interface BackupTask {
+  deviceId: string
+  direction: SyncDirection        // 方向參數（必填，MVP 固定為 'mobile-to-pc'）
+  syncTypes?: SyncFileType[]      // 要同步的檔案類型（optional，MVP MockBackupManager 忽略此欄位）
+}
+
+// === BackupManager interface（R10 更新）===
+
+export interface BackupManager {
+  startBackup(task: BackupTask): Promise<void>
+  cancelBackup(deviceId: string): void
+  getStatus(deviceId: string): BackupStatus
+}
+```
+
+**MVP 實作範圍**：`MockBackupManager` 只處理 `direction === 'mobile-to-pc'` 的情況，其他 direction 拋出 `UnsupportedDirectionError`。`PairedDevice` 建立時 `syncDirection` 預設為 `'mobile-to-pc'`，`syncTypes` 預設為 `DEFAULT_SYNC_TYPES`。
 
 ---
 
@@ -342,8 +406,8 @@ auto-backup/
 │   │       ├── device-scanner.ts         # mDNS 偵測（被動監聽 + 主動 query + 30 秒 debounce）
 │   │       ├── notification-service.ts   # Windows 原生通知
 │   │       ├── backup-manager.ts         # BackupManager interface + MockBackupManager
-│   │       ├── settings-store.ts         # electron-store 封裝（僅 main process）
-│   │       └── backup-history-store.ts   # 備份歷史 electron-store 封裝
+│   │       ├── settings-store.ts         # electron-conf 封裝（僅 main process）
+│   │       └── backup-history-store.ts   # 備份歷史 electron-conf 封裝
 │   ├── preload/
 │   │   └── index.ts                      # contextBridge 暴露 typed API
 │   ├── renderer/
@@ -389,7 +453,7 @@ auto-backup/
 - Files: `package.json`, `electron.vite.config.ts`, `vitest.config.ts`, `tsconfig*.json`, `src/main/index.ts`, `src/preload/index.ts`, `src/renderer/App.tsx`, `src/renderer/index.html`, `src/shared/ipc-channels.ts`, `src/shared/types.ts`, `src/main/tray.ts`, `resources/tray-icon.png`
 - Action:
   - 用 electron-vite 建立專案骨架，整合 React + TypeScript + TailwindCSS v4（`@tailwindcss/vite`）
-  - 安裝核心依賴：`zustand`, `bonjour-service`, `electron-store`, `@electron-toolkit/typed-ipc`
+  - 安裝核心依賴：`zustand`, `bonjour-service`, `electron-conf`, `@electron-toolkit/typed-ipc`
   - 定義所有 IPC channel type map（`get-current-state`, `device-found`, `device-lost`, `backup-progress`, `backup-complete`, `start-backup`, `cancel-backup`, `get-settings`, `save-settings`, `validate-path`, `scan-devices`, `pair-device`, `unpair-device`, `add-device-manual`, `get-history`, `mdns-status`）
   - 定義共用型別：`Device`（name, ip, serviceType, paired）、`BackupJob`（id, deviceName, status, progress）、`Settings`（backupPath, pairedDevices）、`AppState`（devices, currentBackup, status, mdnsAvailable）
   - preload 暴露 typed contextBridge API（invoke + on/off listener）
@@ -405,13 +469,13 @@ auto-backup/
   - 啟動時 mDNS 自我檢測，回報可用性狀態
   - 被動監聽 + 主動 query（每 60 秒）雙模式，處理 iPhone 螢幕鎖定停止廣播的場景
   - 裝置上線後 30 秒 debounce，穩定後觸發 `device-stable-online` 事件
-  - 對比 electron-store 已配對裝置，僅已配對裝置觸發通知
+  - 對比 electron-conf 已配對裝置，僅已配對裝置觸發通知
   - 每台裝置每次上線只觸發一次
   - 手動配對裝置（無 mDNS）透過定期 TCP ping（每 60 秒 connect port 62078）檢測上線
   - NotificationService：收到穩定上線事件後發送 Windows 原生通知，點擊開啟主視窗
   - BackupManager interface + MockBackupManager（模擬進度 0-100%）
   - 備份前驗證路徑存在
-  - electron-store 封裝（settings-store + backup-history-store），僅 main process 存取
+  - electron-conf 封裝（settings-store + backup-history-store），僅 main process 存取
   - ipc-handlers.ts 集中註冊所有 handler
   - main/index.ts 建構所有 service 實例並注入
 - Verify: `npx vitest run` 單元測試通過（debounce、配對過濾、重複觸發防護、mock 備份進度）；手動測試通知顯示
@@ -427,7 +491,7 @@ auto-backup/
   - 掃描逾時處理：10 秒後無結果顯示「未偵測到裝置，試試手動輸入 IP」提示
   - 已配對裝置列表顯示在上方
   - 手動新增裝置（Plan B）：IP 輸入欄位 + TCP 探測按鈕，探測成功可新增為裝置
-  - Zustand settings-store 透過 IPC 與 main process electron-store 同步
+  - Zustand settings-store 透過 IPC 與 main process electron-conf 同步
 - Verify: `npm run dev` 開啟設定頁面，可掃描裝置、配對、手動 IP 新增、設定路徑、驗證路徑、重啟後保留
 - Done: 設定可正常儲存/讀取，裝置配對（含手動 IP）功能正常，路徑驗證有效
 

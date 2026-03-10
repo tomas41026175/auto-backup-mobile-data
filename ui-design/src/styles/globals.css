@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Background Layers ── */
+  --color-bg-base:    #0d0f14;
+  --color-bg-surface: #141720;
+  --color-bg-raised:  #1c2030;
+  --color-bg-overlay: #232840;
+
+  /* ── Border ── */
+  --color-border:       rgba(255,255,255,0.07);
+  --color-border-strong: rgba(255,255,255,0.13);
+
+  /* ── Primary (Blue) ── */
+  --color-primary:        #4f8ef7;
+  --color-primary-hover:  #6aa0ff;
+  --color-primary-subtle: rgba(79,142,247,0.12);
+  --color-primary-glow:   rgba(79,142,247,0.25);
+
+  /* ── Text ── */
+  --color-text:           #e8ecf4;
+  --color-text-secondary: #8892a4;
+  --color-text-muted:     #505a6e;
+
+  /* ── Status ── */
+  --color-success:        #34d399;
+  --color-success-subtle: rgba(52,211,153,0.12);
+  --color-warning:        #fbbf24;
+  --color-warning-subtle: rgba(251,191,36,0.12);
+  --color-error:          #f87171;
+  --color-error-subtle:   rgba(248,113,113,0.12);
+  --color-info:           #60a5fa;
+  --color-info-subtle:    rgba(96,165,250,0.12);
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* ── Radius ── */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+
+  /* ── Shadow ── */
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md:   0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 20px var(--color-primary-glow);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  border-color: var(--color-border);
+}
+
+html, body, #root {
+  height: 100%;
+  background-color: var(--color-bg-base);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* 自訂 scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

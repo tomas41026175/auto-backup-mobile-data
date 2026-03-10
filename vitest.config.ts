@@ -4,10 +4,10 @@ export default defineConfig({
   test: {
     projects: [
       {
-        // Main process tests（Node.js 環境）
+        // Main process tests + Integration tests（Node.js 環境）
         test: {
           name: 'main',
-          include: ['src/main/**/*.{test,spec}.ts'],
+          include: ['tests/unit/**/*.{test,spec}.ts', 'tests/integration/**/*.{test,spec}.ts'],
           environment: 'node'
         }
       },

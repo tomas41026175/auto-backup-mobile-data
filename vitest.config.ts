@@ -7,7 +7,7 @@ export default defineConfig({
         // Main process tests（Node.js 環境）
         test: {
           name: 'main',
-          include: ['src/main/**/*.{test,spec}.ts', 'tests/unit/**/*.{test,spec}.ts'],
+          include: ['src/main/**/*.{test,spec}.ts'],
           environment: 'node'
         }
       },

@@ -128,8 +128,8 @@ export function Card({ children, className, onClick, glow }: CardProps): React.R
     <div
       onClick={onClick}
       className={cn(
-        'rounded-xl border bg-[--color-bg-surface] p-5',
-        glow && 'border-[--color-primary]/20 shadow-[--shadow-glow]',
+        'rounded-xl border border-[--color-border] bg-[--color-bg-surface] p-5 shadow-sm',
+        glow && 'border-[--color-primary]/40 shadow-[--shadow-glow]',
         onClick && 'cursor-pointer hover:bg-[--color-bg-raised] transition-colors',
         className,
       )}

@@ -9,3 +9,39 @@ html, body, #root {
   margin: 0;
   padding: 0;
 }
+
+:root {
+  /* Backgrounds — 深色主題 */
+  --color-bg-base:    #080d1a;
+  --color-bg-surface: #111827;
+  --color-bg-raised:  #1d2d44;
+  --color-bg-overlay: #2d3f59;
+
+  /* Text — 白色系 */
+  --color-text:           #ffffff;
+  --color-text-secondary: #ffffff;
+  --color-text-muted:     #94a3b8; /* slate-400 */
+
+  /* Borders */
+  --color-border:        #1e3a5a;
+  --color-border-strong: #2d5282;
+
+  /* Primary — violet */
+  --color-primary:        #7c3aed; /* violet-600 */
+  --color-primary-hover:  #8b5cf6; /* violet-500 */
+  --color-primary-subtle: #2e1065; /* violet-950 */
+  --color-primary-glow:   rgba(124, 58, 237, 0.4);
+
+  /* Semantic */
+  --color-error:          #fc8181;
+  --color-error-subtle:   rgba(252, 129, 129, 0.15);
+  --color-success:        #34d399;
+  --color-success-subtle: rgba(52, 211, 153, 0.15);
+  --color-warning:        #fbbf24;
+  --color-warning-subtle: rgba(251, 191, 36, 0.15);
+  --color-info:           #38bdf8;
+  --color-info-subtle:    rgba(56, 189, 248, 0.15);
+
+  /* Shadows */
+  --shadow-glow: 0 0 28px rgba(124, 58, 237, 0.4);
+}

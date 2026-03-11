@@ -2,6 +2,7 @@ import { Notification } from 'electron'
 import type { BrowserWindow } from 'electron'
 import type { Device } from '../../shared/types'
 import type { BackupManager } from '../../shared/types'
+import { showMainWindow } from '../utils/window-utils'
 
 export interface NotificationService {
   handleDeviceStableOnline(device: Device): void
@@ -27,17 +28,7 @@ export function createNotificationService(
     activeNotifications.add(notification)
 
     notification.on('click', () => {
-      // 顯示視窗 + Windows 焦點 workaround
-      if (win.isVisible()) {
-        win.setAlwaysOnTop(true)
-        win.focus()
-        win.setAlwaysOnTop(false)
-      } else {
-        win.show()
-        win.setAlwaysOnTop(true)
-        win.focus()
-        win.setAlwaysOnTop(false)
-      }
+      showMainWindow(win)
 
       // 自動開始備份
       const settings = { direction: 'mobile-to-pc' as const }

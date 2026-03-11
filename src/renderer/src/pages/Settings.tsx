@@ -6,40 +6,6 @@ import { ManualDeviceInput } from '../components/ManualDeviceInput'
 import { useSettingsStore } from '../stores/settings-store'
 import type { PairedDevice, SyncDirection, SyncFileType } from '../../../shared/types'
 
-// ── Switch ────────────────────────────────────────────────────────────────────
-
-interface SwitchProps {
-  checked: boolean
-  onChange: (checked: boolean) => void
-  id?: string
-}
-
-function Switch({ checked, onChange, id }: SwitchProps): React.ReactElement {
-  return (
-    <button
-      id={id}
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={[
-        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full',
-        'transition-colors duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-primary]/50',
-        'border border-[--color-border-strong]',
-        checked ? 'bg-[--color-primary]' : 'bg-[--color-bg-overlay]',
-      ].join(' ')}
-    >
-      <span
-        className={[
-          'pointer-events-none absolute top-0.5 inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm',
-          'transition-transform duration-200',
-          checked ? 'translate-x-4' : 'translate-x-0.5',
-        ].join(' ')}
-      />
-    </button>
-  )
-}
-
 // ── Section Title ─────────────────────────────────────────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }): React.ReactElement {
@@ -56,7 +22,6 @@ function Settings(): React.JSX.Element {
   const {
     backupPath,
     pairedDevices,
-    autoStart,
     isLoading,
     isSaving,
     error,
@@ -67,7 +32,6 @@ function Settings(): React.JSX.Element {
     removePairedDevice,
     updateDeviceSyncTypes,
     updateDeviceSyncDirection,
-    setAutoStart,
   } = useSettingsStore()
 
   useEffect(() => {
@@ -102,11 +66,6 @@ function Settings(): React.JSX.Element {
   function handleManualDeviceAdded(device: PairedDevice): void {
     addPairedDevice(device)
     void saveSettings()
-  }
-
-  async function handleAutoStartChange(value: boolean): Promise<void> {
-    setAutoStart(value)
-    await saveSettings()
   }
 
   if (isLoading) {
@@ -161,29 +120,6 @@ function Settings(): React.JSX.Element {
             <SectionTitle>手動新增（IP 輸入）</SectionTitle>
             <Divider />
             <ManualDeviceInput onDeviceAdded={handleManualDeviceAdded} />
-          </div>
-        </Card>
-
-        {/* ── 區塊 4：一般設定 ─────────────────────────────────── */}
-        <Card>
-          <div className="flex flex-col gap-3">
-            <SectionTitle>一般設定</SectionTitle>
-            <Divider />
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="auto-start"
-                  className="cursor-pointer text-sm text-[--color-text]"
-                >
-                  開機自動啟動
-                </label>
-                <Switch
-                  id="auto-start"
-                  checked={autoStart}
-                  onChange={(value) => void handleAutoStartChange(value)}
-                />
-              </div>
-            </div>
           </div>
         </Card>
 

@@ -17,6 +17,7 @@ if (process.platform === 'win32') {
   app.setAppUserModelId(is.dev ? process.execPath : 'com.autobackup.app')
 }
 
+let isQuitting = false
 let mainWindow: BrowserWindow | null = null
 
 // 模組層級全域（GC 防護）
@@ -41,8 +42,10 @@ function createWindow(): void {
 
   // 關閉視窗只隱藏，不退出（常駐 Tray）
   mainWindow.on('close', (event) => {
-    event.preventDefault()
-    mainWindow?.hide()
+    if (!isQuitting) {
+      event.preventDefault()
+      mainWindow?.hide()
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -65,6 +68,9 @@ app.whenReady().then(() => {
   // 初始化順序：createWindow → createTray → initServices → setupIpc
   createWindow()
   createTray()
+  if (process.platform === 'darwin') {
+    app.dock?.hide()
+  }
 
   // 建立服務層
   const settingsStore = createSettingsStore()
@@ -100,8 +106,9 @@ app.whenReady().then(() => {
   ipcMain.handle('select-backup-path', async () => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory'],
-      title: '選擇備份路徑'
+      properties: ['openDirectory', 'createDirectory'],
+      title: '選擇備份路徑',
+      ...(process.platform === 'darwin' ? { defaultPath: '/Volumes' } : {})
     })
     return result.canceled ? null : (result.filePaths[0] ?? null)
   })
@@ -120,9 +127,12 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
+  } else {
+    mainWindow?.show()
   }
 })
 
 app.on('before-quit', () => {
+  isQuitting = true
   deviceScanner?.destroy()
 })

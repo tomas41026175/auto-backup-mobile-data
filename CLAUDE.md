@@ -11,11 +11,7 @@
 /spec-work --complex-issue    # 複雜模式（跨模組、架構決策、≥5 tasks）
 ```
 
-**spec 路徑**：`dev-log/{taskId}_{workname}/spec.md`（已納入版控）
-
-- `taskId`：任務 ID，如 `TASK-001`、`T-001`
-- `workname`：任務名稱，kebab-case，如 `usb-device-monitor`
-- 範例：`dev-log/TASK-001_usb-device-monitor/spec.md`
+**spec 路徑**：`dev-log/{taskId}_{workname}/spec.md`（範例：`dev-log/TASK-001_usb-device-monitor/spec.md`）
 
 **Template 選擇**：複製 `dev-log/_templates/` 對應模板使用
 
@@ -65,11 +61,8 @@ PR description 的 `## Summary` 區塊必須包含：
 
 ### 備份核心
 
-- 實際備份走 libimobiledevice CLI（`idevicepair`、`ifuse`），USB + AFC 協定
 - mDNS (`bonjour-service`) 用於顯示裝置在線狀態，不直接觸發備份
-- 傳輸驗證用 xxHash64（`@node-rs/xxhash`），非 SHA-256
 
 ## 相關文件
 
 - [Dev Log Index](./dev-log/index.md) — 所有任務規劃
-- [Tech Stack Research](./docs/research/tech-stack/master-index.md) — 技術研究彙整

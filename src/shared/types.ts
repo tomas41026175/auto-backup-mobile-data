@@ -116,3 +116,8 @@ export interface UsbDeviceInfo {
   iosVersion: string
   productId: number
 }
+
+export interface FuseStatus {
+  installed: boolean
+  approved: boolean
+}

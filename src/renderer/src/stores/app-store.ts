@@ -7,13 +7,11 @@ import type {
   UsbDevice,
   BackupProgressDetail,
   BackupCompleteDetail,
-  BackupErrorDetail
+  BackupErrorDetail,
+  FuseStatus
 } from '../../../shared/types'
 
-export interface FuseStatus {
-  installed: boolean
-  approved: boolean
-}
+export type { FuseStatus }
 
 interface AppStore {
   devices: Device[]

@@ -119,13 +119,15 @@ export function setupIpcHandlers({
   })
 
   // check-macos-fuse
+  // installed: filesystem bundle 存在
+  // approved:  kextstat 顯示 macFUSE kext 已載入（代表用戶已在隱私與安全性中核准）
   ipcMain.handle('check-macos-fuse', async () => {
     const installed = fs.existsSync('/Library/Filesystems/macfuse.fs')
     let approved = false
     if (installed) {
       try {
-        await execFile('/opt/homebrew/bin/ifuse', ['--version'])
-        approved = true
+        const { stdout } = await execFile('/usr/sbin/kextstat', [])
+        approved = stdout.toLowerCase().includes('fuse')
       } catch {
         approved = false
       }

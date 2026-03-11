@@ -283,13 +283,16 @@ function Dashboard(): React.JSX.Element {
   const [lastBackupTime, setLastBackupTime] = useState<string>('無記錄')
 
   useEffect(() => {
+    let cancelled = false
+
     window.api
       .invoke('check-macos-fuse')
       .then((result) => {
-        useAppStore.getState().setFuseStatus(result)
+        if (!cancelled) useAppStore.getState().setFuseStatus(result)
       })
-      .catch(() => {
-        useAppStore.getState().setFuseStatus(null)
+      .catch((err) => {
+        console.error('[Dashboard] check-macos-fuse failed:', err)
+        if (!cancelled) useAppStore.getState().setFuseStatus(null)
       })
 
     window.api
@@ -326,6 +329,10 @@ function Dashboard(): React.JSX.Element {
         setMonthlyCount(0)
         setLastBackupTime('無記錄')
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const handleGoToSettings = (): void => {

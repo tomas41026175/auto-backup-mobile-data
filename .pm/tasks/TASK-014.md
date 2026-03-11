@@ -1,7 +1,7 @@
 ---
 id: TASK-014
 title: UI 整合 USB 裝置狀態（Dashboard + 備份進度）
-status: pending
+status: done
 priority: medium
 worktree: ""
 branch: ""

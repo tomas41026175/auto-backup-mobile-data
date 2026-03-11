@@ -1,7 +1,7 @@
 ---
 id: TASK-013
 title: AfcBackupManager（AFC 直接存取 + Stream 複製 + xxHash64 + progress IPC）
-status: pending
+status: done
 priority: high
 worktree: ""
 branch: ""

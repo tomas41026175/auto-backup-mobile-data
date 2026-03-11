@@ -1,7 +1,7 @@
 ---
 id: TASK-012
 title: UsbDeviceMonitor service（node-usb hotplug + idevice CLI wrapper）
-status: pending
+status: done
 priority: high
 worktree: ""
 branch: ""

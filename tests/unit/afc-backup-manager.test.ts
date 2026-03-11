@@ -123,6 +123,24 @@ function makeFakeReadStream(chunks: Buffer[] = [], delayMs = 10) {
   return ee
 }
 
+/**
+ * 建立「等到 'end' listener 被加上後才 emit」的 ReadStream
+ * 用於 verify stream：避免 setTimeout 在監聽器加入前就過期
+ */
+function makeLazyReadStream(chunks: Buffer[] = []) {
+  const ee = new EventEmitter() as ReturnType<typeof createReadStream>
+  ;(ee as unknown as { pipe: (ws: unknown) => void }).pipe = vi.fn()
+  ee.on('newListener', (event: string) => {
+    if (event === 'end') {
+      setImmediate(() => {
+        for (const chunk of chunks) ee.emit('data', chunk)
+        ee.emit('end')
+      })
+    }
+  })
+  return ee
+}
+
 /** 建立假的 WriteStream EventEmitter，延遲後 emit finish（在 ReadStream end 之後）*/
 function makeFakeWriteStream(delayMs = 20) {
   const ee = new EventEmitter() as ReturnType<typeof createWriteStream>
@@ -303,7 +321,7 @@ describe('AfcBackupManager', () => {
       const fakeContent = Buffer.from('fake image data')
       const fakeReadStream = makeFakeReadStream([fakeContent])
       const fakeWriteStream = makeFakeWriteStream()
-      const fakeVerifyStream = makeFakeReadStream([fakeContent])
+      const fakeVerifyStream = makeLazyReadStream([fakeContent])
 
       mockCreateReadStream
         .mockReturnValueOnce(fakeReadStream)

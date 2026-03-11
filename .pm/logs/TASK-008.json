@@ -1,0 +1,7 @@
+{
+  "task_id": "TASK-008",
+  "title": "Phase 2 — electron-builder macOS 打包設定完善",
+  "runs": [{"run_id": 1, "started": "2026-03-11T00:50:00Z", "ended": "2026-03-11T00:55:00Z", "duration_minutes": 5, "outcome": "success", "summary": "electron-builder.yml mac 區塊確認完整（identity: null, arm64, extendInfo），npm run build:mac 成功，產出 dist/Auto Backup-1.0.0-arm64.dmg (108MB)", "acceptance_passed": true, "retry_reason": null, "interrupted": false}],
+  "total_runs": 1,
+  "final_outcome": "success"
+}

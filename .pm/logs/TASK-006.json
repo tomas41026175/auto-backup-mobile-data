@@ -1,0 +1,19 @@
+{
+  "task_id": "TASK-006",
+  "title": "Phase 0 — macOS 前置驗證（mDNS 本地網路權限）",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-11T00:00:00Z",
+      "ended": "2026-03-11T06:10:00Z",
+      "duration_minutes": 10,
+      "outcome": "COMPLETE",
+      "summary": "加入 macOS DMG 打包設定（identity=null、arm64、mDNS extendInfo），npm run build:mac 成功，dist/Auto Backup-1.0.0-arm64.dmg（113MB）產出",
+      "acceptance_passed": true,
+      "retry_reason": null,
+      "interrupted": false
+    }
+  ],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

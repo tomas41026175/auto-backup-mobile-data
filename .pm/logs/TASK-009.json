@@ -1,0 +1,7 @@
+{
+  "task_id": "TASK-009",
+  "title": "Phase 3 — macOS Tray Template Image",
+  "runs": [{"run_id": 1, "started": "2026-03-11T00:50:00Z", "ended": "2026-03-11T00:52:00Z", "duration_minutes": 2, "outcome": "success", "summary": "使用 sips 從 icon.png 轉換生成 iconTemplate.png（16x16）與 iconTemplate@2x.png（32x32），已 git commit", "acceptance_passed": true, "retry_reason": null, "interrupted": false}],
+  "total_runs": 1,
+  "final_outcome": "success"
+}

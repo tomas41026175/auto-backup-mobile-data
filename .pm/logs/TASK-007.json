@@ -1,0 +1,19 @@
+{
+  "task_id": "TASK-007",
+  "title": "Phase 1 — macOS Platform Branch 修改（主程序）",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-11T00:10:00Z",
+      "ended": "2026-03-11T00:45:30Z",
+      "duration_minutes": 35,
+      "outcome": "COMPLETE",
+      "summary": "macOS platform branch 修改完成：新增 window-utils.ts、修改 index.ts/tray.ts/notification-service.ts 為 platform-aware、移除 Settings.tsx autoStart Dead UI",
+      "acceptance_passed": true,
+      "retry_reason": null,
+      "interrupted": false
+    }
+  ],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

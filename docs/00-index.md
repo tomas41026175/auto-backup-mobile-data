@@ -1,6 +1,6 @@
 # Docs Index — Windows Auto Backup MVP
 
-**更新**: 2026-03-10
+**更新**: 2026-03-11
 
 ---
 
@@ -52,6 +52,12 @@
 | [research/cross-platform/05-login-items-macos-vs-windows.md](./research/cross-platform/05-login-items-macos-vs-windows.md) | setLoginItemSettings 跨平台差異 |
 | [research/cross-platform/06-electron-builder-macos.md](./research/cross-platform/06-electron-builder-macos.md) | electron-builder macOS DMG 打包 |
 | [research/cross-platform/07-file-path-cross-platform.md](./research/cross-platform/07-file-path-cross-platform.md) | 跨平台檔案路徑處理 |
+
+## 架構決策
+
+| 文件 | 說明 |
+|------|------|
+| [adr-cross-platform.md](./adr-cross-platform.md) | 跨平台擴展策略（含 macOS 個人使用方案、三輪程式碼審查） |
 
 ## 相關連結
 

@@ -28,6 +28,7 @@ vi.mock('electron', () => ({
 function createMockWindow() {
   return {
     isVisible: vi.fn().mockReturnValue(false),
+    isDestroyed: vi.fn().mockReturnValue(false),
     show: vi.fn(),
     focus: vi.fn(),
     setAlwaysOnTop: vi.fn()

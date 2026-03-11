@@ -5,7 +5,8 @@ import type {
   BackupTask,
   Device,
   PairedDevice,
-  Settings
+  Settings,
+  UsbDeviceInfo
 } from './types'
 
 /**
@@ -18,6 +19,8 @@ export interface IpcListenerChannels {
   'backup-progress': [job: BackupJob]
   'backup-complete': [record: BackupRecord]
   'mdns-status': [available: boolean]
+  'device-usb-connected': [info: UsbDeviceInfo]
+  'device-usb-disconnected': [udid: string]
 }
 
 /**

@@ -1,10 +1,10 @@
 ---
 id: TASK-011
 title: PoC — node-usb hotplug on Electron（macOS arm64）
-status: pending
+status: in_progress
 priority: high
-worktree: ""
-branch: ""
+worktree: ".worktrees/TASK-011"
+branch: "task/TASK-011"
 created: 2026-03-11T00:00:00Z
 updated: 2026-03-11T00:00:00Z
 ---

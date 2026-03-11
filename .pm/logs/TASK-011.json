@@ -1,0 +1,16 @@
+{
+  "task_id": "TASK-011",
+  "title": "PoC — node-usb hotplug on Electron（macOS arm64）",
+  "runs": [{
+    "run_id": 1,
+    "started": "2026-03-11T02:00:50Z",
+    "ended": "2026-03-11T02:30:00Z",
+    "duration_minutes": 29,
+    "outcome": "BLOCKED",
+    "summary": "node-usb v2.17.0 安裝成功（prebuilt NAPI darwin-x64+arm64）。electron-rebuild 驗證通過（Rebuild Complete）。getDeviceList() 正常執行（找到 3 個 USB 裝置）。attach/detach 事件 listener 註冊正常。Electron main process context 模擬（ipcMain pattern）驗證通過。需實體 iPhone 才能觸發真實 attach/detach 事件。",
+    "acceptance_passed": false,
+    "interrupted": false
+  }],
+  "total_runs": 1,
+  "final_outcome": "BLOCKED"
+}

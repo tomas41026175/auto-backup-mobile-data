@@ -1,10 +1,10 @@
 ---
 id: TASK-010
 title: PoC — libimobiledevice macOS Sequoia 相容性驗證
-status: pending
+status: in_progress
 priority: high
-worktree: ""
-branch: ""
+worktree: ".worktrees/TASK-010"
+branch: "task/TASK-010"
 created: 2026-03-11T00:00:00Z
 updated: 2026-03-11T00:00:00Z
 ---

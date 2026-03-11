@@ -81,3 +81,10 @@ export interface BackupManager {
   cancelBackup(deviceId: string): void
   getStatus(deviceId: string): BackupStatus
 }
+
+export interface UsbDeviceInfo {
+  udid: string
+  name: string
+  iosVersion: string
+  productId: number
+}

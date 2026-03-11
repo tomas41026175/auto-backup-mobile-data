@@ -9,9 +9,11 @@ import { createBackupHistoryStore } from './services/backup-history-store'
 import { createDeviceScanner } from './services/device-scanner'
 import { MockBackupManager } from './services/backup-manager'
 import { createNotificationService } from './services/notification-service'
+import { createUsbDeviceMonitor } from './services/usb-device-monitor'
 import { getMainWindow, setMainWindow } from './window-manager'
 import type { DeviceScanner } from './services/device-scanner'
-import type { Device, BackupJob, BackupRecord } from '../shared/types'
+import type { UsbDeviceMonitor } from './services/usb-device-monitor'
+import type { Device, BackupJob, BackupRecord, UsbDeviceInfo } from '../shared/types'
 
 // AppUserModelId 必須在 app.whenReady() 之前呼叫（單一呼叫點，移除重複）
 if (process.platform === 'win32') {
@@ -22,6 +24,7 @@ let isQuitting = false
 
 // 模組層級全域（GC 防護）
 let deviceScanner: DeviceScanner | null = null
+let usbDeviceMonitor: UsbDeviceMonitor | null = null
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -88,6 +91,18 @@ app.whenReady().then(() => {
 
   const notificationService = createNotificationService(getMainWindow, backupManager)
 
+  // 初始化 USB 裝置監控
+  const usbMonitor = createUsbDeviceMonitor()
+  usbDeviceMonitor = usbMonitor
+
+  // 接線：UsbDeviceMonitor 事件 → push IPC 到 renderer
+  usbMonitor.on('usb-device-connected', (info: UsbDeviceInfo) => {
+    getMainWindow()?.webContents.send('device-usb-connected', info)
+  })
+  usbMonitor.on('usb-device-disconnected', (udid: string) => {
+    getMainWindow()?.webContents.send('device-usb-disconnected', udid)
+  })
+
   // 接線：DeviceScanner 事件 → push IPC 到 renderer
   scanner.on('device-found', (device: Device) => {
     getMainWindow()?.webContents.send('device-found', device)
@@ -145,4 +160,5 @@ app.on('activate', () => {
 app.on('before-quit', () => {
   isQuitting = true
   deviceScanner?.destroy()
+  usbDeviceMonitor?.destroy()
 })

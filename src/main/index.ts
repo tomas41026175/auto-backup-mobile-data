@@ -7,7 +7,7 @@ import { setupIpcHandlers } from './ipc-handlers'
 import { createSettingsStore } from './services/settings-store'
 import { createBackupHistoryStore } from './services/backup-history-store'
 import { createDeviceScanner } from './services/device-scanner'
-import { MockBackupManager } from './services/backup-manager'
+import { AfcBackupManager } from './services/afc-backup-manager'
 import { createNotificationService } from './services/notification-service'
 import { createUsbDeviceMonitor } from './services/usb-device-monitor'
 import { getMainWindow, setMainWindow } from './window-manager'
@@ -87,7 +87,7 @@ app.whenReady().then(() => {
   const backupHistoryStore = createBackupHistoryStore()
   const scanner = createDeviceScanner(settingsStore)
   deviceScanner = scanner
-  const backupManager = new MockBackupManager(settingsStore, backupHistoryStore)
+  const backupManager = new AfcBackupManager(settingsStore, backupHistoryStore)
 
   const notificationService = createNotificationService(getMainWindow, backupManager)
 
@@ -123,7 +123,7 @@ app.whenReady().then(() => {
     getMainWindow()?.webContents.send('mdns-status', available)
   })
 
-  // MockBackupManager 事件 → push IPC 到 renderer
+  // AfcBackupManager 事件 → push IPC 到 renderer
   backupManager.on('backup-progress', (job: BackupJob) => {
     getMainWindow()?.webContents.send('backup-progress', job)
   })

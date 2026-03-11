@@ -50,4 +50,5 @@ export interface IpcHandlerChannels {
   'start-backup': (task: BackupTask) => void
   'cancel-backup': (deviceId: string) => void
   'get-history': () => BackupRecord[]
+  'check-macos-fuse': () => { installed: boolean; approved: boolean }
 }

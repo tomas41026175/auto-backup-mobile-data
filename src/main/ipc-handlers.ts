@@ -1,6 +1,10 @@
 import { ipcMain } from 'electron'
 import * as fs from 'fs'
 import * as net from 'net'
+import { execFile as execFileCb } from 'child_process'
+import { promisify } from 'util'
+
+const execFile = promisify(execFileCb)
 import type { Device, PairedDevice, Settings } from '../shared/types'
 import type { SettingsStore } from './services/settings-store'
 import type { BackupHistoryStore } from './services/backup-history-store'
@@ -112,6 +116,21 @@ export function setupIpcHandlers({
   // get-history
   ipcMain.handle('get-history', () => {
     return backupHistoryStore.getHistory()
+  })
+
+  // check-macos-fuse
+  ipcMain.handle('check-macos-fuse', async () => {
+    const installed = fs.existsSync('/Library/Filesystems/macfuse.fs')
+    let approved = false
+    if (installed) {
+      try {
+        await execFile('/opt/homebrew/bin/ifuse', ['--version'])
+        approved = true
+      } catch {
+        approved = false
+      }
+    }
+    return { installed, approved }
   })
 }
 

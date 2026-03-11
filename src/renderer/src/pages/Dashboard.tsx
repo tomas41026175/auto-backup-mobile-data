@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import useAppStore from '../stores/app-store'
+import type { FuseStatus } from '../stores/app-store'
 import { BackupProgress } from '../components/BackupProgress'
 import type { Settings, BackupTask, PairedDevice } from '../../../shared/types'
 
@@ -25,6 +26,35 @@ function formatLastBackup(completedAt: string | undefined): string {
   if (diffHours < 1) return '剛才'
   if (diffHours < 24) return `${Math.floor(diffHours)} 小時前`
   return `${Math.floor(diffHours / 24)} 天前`
+}
+
+// ── macFUSE Banner ────────────────────────────────────────────────────────────
+
+function MacFuseBanner({ fuseStatus }: { fuseStatus: FuseStatus | null }): React.JSX.Element | null {
+  if (fuseStatus === null || fuseStatus.approved) return null
+
+  if (!fuseStatus.installed) {
+    return (
+      <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2.5">
+        <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-400" />
+        <p className="text-xs leading-relaxed text-red-300">
+          USB 備份需要 macFUSE —{' '}
+          <a href="#" className="underline hover:text-red-200">
+            請安裝 macFUSE
+          </a>
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-3 py-2.5">
+      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-yellow-400" />
+      <p className="text-xs leading-relaxed text-yellow-300">
+        請前往 系統設定 → 隱私權與安全性 核准 macFUSE，以啟用 USB 備份功能
+      </p>
+    </div>
+  )
 }
 
 // ── mDNS Banner ───────────────────────────────────────────────────────────────
@@ -233,7 +263,7 @@ function QuickStats({ monthlyCount, lastBackupTime, backupPath }: QuickStatsProp
 
 function Dashboard(): React.JSX.Element {
   const navigate = useNavigate()
-  const { devices, currentBackup, status, mdnsAvailable, usbDevice, backupError, backupComplete } =
+  const { devices, currentBackup, status, mdnsAvailable, usbDevice, backupError, backupComplete, fuseStatus } =
     useAppStore(
       useShallow((state) => ({
         devices: state.devices,
@@ -243,6 +273,7 @@ function Dashboard(): React.JSX.Element {
         usbDevice: state.usbDevice,
         backupError: state.backupError,
         backupComplete: state.backupComplete,
+        fuseStatus: state.fuseStatus,
       }))
     )
 
@@ -252,6 +283,15 @@ function Dashboard(): React.JSX.Element {
   const [lastBackupTime, setLastBackupTime] = useState<string>('無記錄')
 
   useEffect(() => {
+    window.api
+      .invoke('check-macos-fuse')
+      .then((result) => {
+        useAppStore.getState().setFuseStatus(result)
+      })
+      .catch(() => {
+        useAppStore.getState().setFuseStatus(null)
+      })
+
     window.api
       .invoke('get-settings')
       .then((s) => {
@@ -325,6 +365,9 @@ function Dashboard(): React.JSX.Element {
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-gray-900">
       <MdnsBanner mdnsAvailable={mdnsAvailable} />
+
+      {/* macFUSE status banner */}
+      <MacFuseBanner fuseStatus={fuseStatus} />
 
       {/* USB device connection banner */}
       {usbDevice !== null && (

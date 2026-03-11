@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Loader2,
   Play,
+  Usb,
 } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import useAppStore from '../stores/app-store'
@@ -68,6 +69,26 @@ function SetupBanner({ onGoToSettings }: { onGoToSettings: () => void }): React.
       >
         前往設定
       </button>
+    </div>
+  )
+}
+
+// ── USB Device Banner ─────────────────────────────────────────────────────────
+
+interface UsbDeviceBannerProps {
+  deviceName: string
+  productVersion: string
+}
+
+function UsbDeviceBanner({ deviceName, productVersion }: UsbDeviceBannerProps): React.JSX.Element {
+  return (
+    <div className="mx-4 mt-3 flex items-center gap-2.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2.5">
+      <Usb size={14} className="shrink-0 text-blue-400" />
+      <div className="flex flex-1 flex-col">
+        <span className="text-xs font-medium text-blue-300">{deviceName}</span>
+        <span className="text-[10px] text-gray-500">iOS {productVersion} · USB 已連接</span>
+      </div>
+      <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
     </div>
   )
 }
@@ -212,14 +233,18 @@ function QuickStats({ monthlyCount, lastBackupTime, backupPath }: QuickStatsProp
 
 function Dashboard(): React.JSX.Element {
   const navigate = useNavigate()
-  const { devices, currentBackup, status, mdnsAvailable } = useAppStore(
-    useShallow((state) => ({
-      devices: state.devices,
-      currentBackup: state.currentBackup,
-      status: state.status,
-      mdnsAvailable: state.mdnsAvailable,
-    }))
-  )
+  const { devices, currentBackup, status, mdnsAvailable, usbDevice, backupError, backupComplete } =
+    useAppStore(
+      useShallow((state) => ({
+        devices: state.devices,
+        currentBackup: state.currentBackup,
+        status: state.status,
+        mdnsAvailable: state.mdnsAvailable,
+        usbDevice: state.usbDevice,
+        backupError: state.backupError,
+        backupComplete: state.backupComplete,
+      }))
+    )
 
   const [settings, setSettings] = useState<Settings | null>(null)
   const [settingsLoading, setSettingsLoading] = useState<boolean>(true)
@@ -270,9 +295,12 @@ function Dashboard(): React.JSX.Element {
   const pairedDevices: PairedDevice[] = settings?.pairedDevices ?? []
   const isSetup = Boolean(settings?.backupPath) && pairedDevices.length > 0
   const isBackingUp = status === 'backing-up' || currentBackup !== null
+  const hasBackupFeedback = backupError !== null || backupComplete !== null || isBackingUp
 
   const handleStartBackup = async (): Promise<void> => {
     if (pairedDevices.length === 0) return
+    useAppStore.getState().setBackupError(null)
+    useAppStore.getState().setBackupComplete(null)
     const firstDevice = pairedDevices[0]
     const task: BackupTask = {
       deviceId: firstDevice.id,
@@ -280,6 +308,10 @@ function Dashboard(): React.JSX.Element {
       syncTypes: firstDevice.syncTypes,
     }
     await window.api.invoke('start-backup', task)
+  }
+
+  const handleRetry = (): void => {
+    void handleStartBackup()
   }
 
   if (settingsLoading) {
@@ -294,6 +326,14 @@ function Dashboard(): React.JSX.Element {
     <div className="flex h-full flex-col overflow-y-auto bg-gray-900">
       <MdnsBanner mdnsAvailable={mdnsAvailable} />
 
+      {/* USB device connection banner */}
+      {usbDevice !== null && (
+        <UsbDeviceBanner
+          deviceName={usbDevice.deviceName}
+          productVersion={usbDevice.productVersion}
+        />
+      )}
+
       {!isSetup ? (
         <SetupBanner onGoToSettings={handleGoToSettings} />
       ) : (
@@ -301,14 +341,16 @@ function Dashboard(): React.JSX.Element {
           {/* Main status card */}
           <div className="rounded-xl border border-gray-700 bg-gray-800/60 p-4">
             {isBackingUp && <BackingUpStatusCard />}
-            {!isBackingUp && status === 'error' && (
+            {!isBackingUp && status === 'error' && backupError === null && (
               <ErrorStatusCard onGoToSettings={handleGoToSettings} />
             )}
-            {!isBackingUp && status !== 'error' && <IdleStatusCard />}
+            {!isBackingUp && (status !== 'error' || backupError !== null) && !isBackingUp && (
+              <IdleStatusCard />
+            )}
           </div>
 
-          {/* Backup progress */}
-          {isBackingUp && <BackupProgress />}
+          {/* Backup progress / complete / error feedback */}
+          {hasBackupFeedback && <BackupProgress onRetry={handleRetry} />}
 
           {/* Paired devices */}
           <div className="flex flex-col gap-2">

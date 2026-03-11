@@ -13,7 +13,7 @@ import { createUsbDeviceMonitor } from './services/usb-device-monitor'
 import { getMainWindow, setMainWindow } from './window-manager'
 import type { DeviceScanner } from './services/device-scanner'
 import type { UsbDeviceMonitor } from './services/usb-device-monitor'
-import type { Device, BackupJob, BackupRecord, UsbDeviceInfo } from '../shared/types'
+import type { Device, BackupJob, BackupRecord, UsbDevice, UsbDeviceInfo } from '../shared/types'
 
 // AppUserModelId 必須在 app.whenReady() 之前呼叫（單一呼叫點，移除重複）
 if (process.platform === 'win32') {
@@ -97,10 +97,16 @@ app.whenReady().then(() => {
 
   // 接線：UsbDeviceMonitor 事件 → push IPC 到 renderer
   usbMonitor.on('usb-device-connected', (info: UsbDeviceInfo) => {
-    getMainWindow()?.webContents.send('device-usb-connected', info)
+    const device: UsbDevice = {
+      udid: info.udid,
+      deviceName: info.name,
+      productType: String(info.productId),
+      productVersion: info.iosVersion
+    }
+    getMainWindow()?.webContents.send('device-usb-connected', device)
   })
-  usbMonitor.on('usb-device-disconnected', (udid: string) => {
-    getMainWindow()?.webContents.send('device-usb-disconnected', udid)
+  usbMonitor.on('usb-device-disconnected', () => {
+    getMainWindow()?.webContents.send('device-usb-disconnected')
   })
 
   // 接線：DeviceScanner 事件 → push IPC 到 renderer
@@ -123,6 +129,13 @@ app.whenReady().then(() => {
   })
   backupManager.on('backup-complete', (record: BackupRecord) => {
     getMainWindow()?.webContents.send('backup-complete', record)
+    if (record.status === 'success') {
+      getMainWindow()?.webContents.send('backup-complete-detail', {
+        fileCount: record.fileCount,
+        totalSize: record.bytesTransferred,
+        durationMs: record.duration
+      })
+    }
   })
 
   // 補充未在 ipc-channels.ts 定義的 UI 用途 channels

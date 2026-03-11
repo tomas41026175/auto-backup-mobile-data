@@ -101,8 +101,13 @@ export class AfcBackupManager extends EventEmitter implements BackupManager {
       result = await this.runTransfer(ctx, mountPoint)
       this.pushProgress({ ...ctx.job, status: 'completing', progress: 100 })
       this.saveRecord(ctx, result, 'success')
-    } catch {
+    } catch (err) {
       const status = ctx.isCancelled() ? 'cancelled' : 'error'
+      console.error('[AfcBackupManager] backup failed:', err)
+      if (status === 'error') {
+        const message = err instanceof Error ? err.message : String(err)
+        getMainWindow()?.webContents.send('backup-error', { message })
+      }
       this.saveRecord(ctx, result, status)
     } finally {
       this.activeJobs.delete(ctx.task.deviceId)
@@ -146,18 +151,16 @@ export class AfcBackupManager extends EventEmitter implements BackupManager {
     const record = buildRecord(ctx.jobId, ctx.task, ctx.deviceName, ctx.startTime, result, status)
     this.historyStore.addRecord(record)
     this.emit('backup-complete', record)
-    getMainWindow()?.webContents.send('backup-complete', record)
   }
 
   private pushProgress(job: BackupJob): void {
     this.emit('backup-progress', job)
-    getMainWindow()?.webContents.send('backup-progress', job)
   }
 
   private pushIpcProgress(
     current: number, total: number, fileName: string, speed: number
   ): void {
-    getMainWindow()?.webContents.send('backup-progress', { current, total, fileName, speed })
+    getMainWindow()?.webContents.send('backup-progress-detail', { current, total, fileName, speed })
   }
 
   cancelBackup(deviceId: string): void {

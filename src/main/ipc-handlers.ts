@@ -97,6 +97,10 @@ export function setupIpcHandlers({
 
   // start-backup
   ipcMain.handle('start-backup', async (_event, task: Parameters<typeof backupManager.startBackup>[0]) => {
+    const paired = settingsStore.getSettings().pairedDevices
+    if (!paired.some((d) => d.id === task.deviceId)) {
+      throw new Error(`Unknown deviceId: ${task.deviceId}`)
+    }
     await backupManager.startBackup(task)
   })
 

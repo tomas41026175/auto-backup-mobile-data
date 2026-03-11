@@ -19,7 +19,7 @@ html, body, #root {
 
   /* Text — 白色系 */
   --color-text:           #ffffff;
-  --color-text-secondary: #ffffff;
+  --color-text-secondary: #e2e8f0; /* slate-200 — 次要文字，稍弱於主色 */
   --color-text-muted:     #94a3b8; /* slate-400 */
 
   /* Borders */
@@ -43,5 +43,5 @@ html, body, #root {
   --color-info-subtle:    rgba(56, 189, 248, 0.15);
 
   /* Shadows */
-  --shadow-glow: 0 0 28px rgba(124, 58, 237, 0.4);
+  --shadow-glow: 0 0 28px var(--color-primary-glow);
 }

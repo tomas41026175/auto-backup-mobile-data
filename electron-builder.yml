@@ -10,6 +10,16 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+mac:
+  target:
+    - target: dmg
+      arch: arm64
+  identity: null
+  icon: resources/icon.png
+  extendInfo:
+    NSLocalNetworkUsageDescription: Auto Backup 需要存取區域網路以偵測 iPhone（mDNS）
+    NSBonjourServices:
+      - _companion-link._tcp
 win:
   target: nsis
   icon: resources/icon.png
@@ -18,4 +28,3 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   runAfterFinish: true
-afterPack: ''

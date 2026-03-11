@@ -10,9 +10,10 @@ export interface NotificationService {
 }
 
 export function createNotificationService(
-  win: BrowserWindow,
+  getWin: (() => BrowserWindow | null) | BrowserWindow,
   backupManager: BackupManager
 ): NotificationService {
+  const resolveWin = typeof getWin === 'function' ? getWin : () => getWin
   // GC 防護：closure 層級 Set，防止 Notification 物件被回收
   const activeNotifications: Set<Notification> = new Set()
 
@@ -28,7 +29,8 @@ export function createNotificationService(
     activeNotifications.add(notification)
 
     notification.on('click', () => {
-      showMainWindow(win)
+      const win = resolveWin()
+      if (win && !win.isDestroyed()) showMainWindow(win)
 
       // 自動開始備份
       const settings = { direction: 'mobile-to-pc' as const }

@@ -50,6 +50,11 @@ function createWindow(): void {
     }
   })
 
+  // 視窗銷毀後清除全域引用，防止持有 isDestroyed() 的物件
+  win.on('closed', () => {
+    setMainWindow(null)
+  })
+
   win.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -81,9 +86,7 @@ app.whenReady().then(() => {
   deviceScanner = scanner
   const backupManager = new MockBackupManager(settingsStore, backupHistoryStore)
 
-  const win = getMainWindow()
-  if (!win) throw new Error('createWindow did not initialize BrowserWindow')
-  const notificationService = createNotificationService(win, backupManager)
+  const notificationService = createNotificationService(getMainWindow, backupManager)
 
   // 接線：DeviceScanner 事件 → push IPC 到 renderer
   scanner.on('device-found', (device: Device) => {
@@ -131,10 +134,11 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
+  const win = getMainWindow()
+  if (!win || win.isDestroyed()) {
     createWindow()
   } else {
-    getMainWindow()?.show()
+    win.show()
   }
 })
 

@@ -17,6 +17,16 @@
 - `workname`：任務名稱，kebab-case，如 `usb-device-monitor`
 - 範例：`dev-log/TASK-001_usb-device-monitor/spec.md`
 
+**Template 選擇**：複製 `dev-log/_templates/` 對應模板使用
+
+| 條件（任一符合） | 使用 |
+|----------------|------|
+| 影響 ≥ 2 個 Layer（main/preload/renderer/shared） | `spec-complex.md` |
+| Task 數量 ≥ 4 | `spec-complex.md` |
+| 涉及 node-usb / AFC / mDNS / launchd 整合 | `spec-complex.md` |
+| 新增或修改 ≥ 3 個 IPC channel | `spec-complex.md` |
+| 其餘（單 Layer、≤ 3 tasks、純 UI 或純 service） | `spec-simple.md` |
+
 #### 例外（可跳過 spec-work）
 
 - 明顯的 typo / console.log 清除 / 小型 bug fix（修改 ≤ 2 個檔案）

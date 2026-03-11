@@ -9,6 +9,7 @@ import { createBackupHistoryStore } from './services/backup-history-store'
 import { createDeviceScanner } from './services/device-scanner'
 import { MockBackupManager } from './services/backup-manager'
 import { createNotificationService } from './services/notification-service'
+import { getMainWindow, setMainWindow } from './window-manager'
 import type { DeviceScanner } from './services/device-scanner'
 import type { Device, BackupJob, BackupRecord } from '../shared/types'
 
@@ -18,13 +19,12 @@ if (process.platform === 'win32') {
 }
 
 let isQuitting = false
-let mainWindow: BrowserWindow | null = null
 
 // 模組層級全域（GC 防護）
 let deviceScanner: DeviceScanner | null = null
 
 function createWindow(): void {
-  mainWindow = new BrowserWindow({
+  const win = new BrowserWindow({
     width: 1024,
     height: 768,
     show: false,
@@ -36,27 +36,34 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow?.show()
+  setMainWindow(win)
+
+  win.on('ready-to-show', () => {
+    win.show()
   })
 
   // 關閉視窗只隱藏，不退出（常駐 Tray）
-  mainWindow.on('close', (event) => {
+  win.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault()
-      mainWindow?.hide()
+      win.hide()
     }
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  // 視窗銷毀後清除全域引用，防止持有 isDestroyed() 的物件
+  win.on('closed', () => {
+    setMainWindow(null)
+  })
+
+  win.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    win.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    win.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
 
@@ -78,34 +85,36 @@ app.whenReady().then(() => {
   const scanner = createDeviceScanner(settingsStore)
   deviceScanner = scanner
   const backupManager = new MockBackupManager(settingsStore, backupHistoryStore)
-  const notificationService = createNotificationService(mainWindow!, backupManager)
+
+  const notificationService = createNotificationService(getMainWindow, backupManager)
 
   // 接線：DeviceScanner 事件 → push IPC 到 renderer
   scanner.on('device-found', (device: Device) => {
-    mainWindow?.webContents.send('device-found', device)
+    getMainWindow()?.webContents.send('device-found', device)
   })
   scanner.on('device-lost', (deviceId: string) => {
-    mainWindow?.webContents.send('device-lost', deviceId)
+    getMainWindow()?.webContents.send('device-lost', deviceId)
   })
   scanner.on('device-stable-online', (device: Device) => {
     notificationService.handleDeviceStableOnline(device)
   })
   scanner.on('mdns-status', (available: boolean) => {
-    mainWindow?.webContents.send('mdns-status', available)
+    getMainWindow()?.webContents.send('mdns-status', available)
   })
 
   // MockBackupManager 事件 → push IPC 到 renderer
   backupManager.on('backup-progress', (job: BackupJob) => {
-    mainWindow?.webContents.send('backup-progress', job)
+    getMainWindow()?.webContents.send('backup-progress', job)
   })
   backupManager.on('backup-complete', (record: BackupRecord) => {
-    mainWindow?.webContents.send('backup-complete', record)
+    getMainWindow()?.webContents.send('backup-complete', record)
   })
 
   // 補充未在 ipc-channels.ts 定義的 UI 用途 channels
   ipcMain.handle('select-backup-path', async () => {
-    if (!mainWindow) return null
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const currentWin = getMainWindow()
+    if (!currentWin) return null
+    const result = await dialog.showOpenDialog(currentWin, {
       properties: ['openDirectory', 'createDirectory'],
       title: '選擇備份路徑',
       ...(process.platform === 'darwin' ? { defaultPath: '/Volumes' } : {})
@@ -113,7 +122,7 @@ app.whenReady().then(() => {
     return result.canceled ? null : (result.filePaths[0] ?? null)
   })
   ipcMain.on('close-window', () => {
-    mainWindow?.hide()
+    getMainWindow()?.hide()
   })
 
   setupIpcHandlers({ settingsStore, backupHistoryStore, deviceScanner: scanner, backupManager })
@@ -125,10 +134,11 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
+  const win = getMainWindow()
+  if (!win || win.isDestroyed()) {
     createWindow()
   } else {
-    mainWindow?.show()
+    win.show()
   }
 })
 

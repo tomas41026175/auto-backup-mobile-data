@@ -1,14 +1,10 @@
-import { app, BrowserWindow, Menu, Tray } from 'electron'
+import { app, Menu, Tray } from 'electron'
 import { join } from 'path'
 import { showMainWindow } from './utils/window-utils'
+import { getMainWindow } from './window-manager'
 
 // GC 防護：模組層級全域變數，防止 Tray 被垃圾回收
 let tray: Tray | null = null
-
-function getMainWindow(): BrowserWindow | null {
-  const windows = BrowserWindow.getAllWindows()
-  return windows.length > 0 ? windows[0] : null
-}
 
 export function createTray(): void {
   const iconPath = process.platform === 'darwin'
@@ -54,7 +50,7 @@ export function createTray(): void {
   if (process.platform === 'darwin') {
     // macOS: 右鍵彈出 context menu，左鍵開啟視窗
     tray.on('right-click', () => {
-      tray!.popUpContextMenu(contextMenu)
+      tray?.popUpContextMenu(contextMenu)
     })
     tray.on('click', () => {
       const win = getMainWindow()

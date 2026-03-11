@@ -1,0 +1,1 @@
+{"status": "COMPLETE", "started": "2026-03-11T00:00:00Z", "last_checkpoint": "2026-03-11T01:45:00Z", "checkpoint_note": "", "summary": "AfcBackupManager 接入生產、macFUSE 引導 UI 完成、check-macos-fuse IPC 新增、85/85 測試全部通過"}

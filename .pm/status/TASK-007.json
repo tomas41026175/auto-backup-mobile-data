@@ -1,0 +1,1 @@
+{"status": "COMPLETE", "started": "2026-03-11T00:10:00Z", "last_checkpoint": "2026-03-11T00:45:30Z", "checkpoint_note": "", "summary": "macOS platform branch 修改完成：新增 window-utils.ts、修改 index.ts/tray.ts/notification-service.ts 為 platform-aware、移除 Settings.tsx autoStart Dead UI"}

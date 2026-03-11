@@ -1,0 +1,1 @@
+{"status": "COMPLETE", "started": "2026-03-11T00:00:00Z", "last_checkpoint": "2026-03-11T06:10:00Z", "checkpoint_note": "", "summary": "加入 macOS DMG 打包設定（identity=null、arm64、mDNS extendInfo），npm run build:mac 成功，dist/Auto Backup-1.0.0-arm64.dmg（113MB）產出"}

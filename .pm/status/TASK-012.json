@@ -1,0 +1,1 @@
+{"status": "COMPLETE", "started": "2026-03-11T02:44:06Z", "last_checkpoint": "2026-03-11T02:57:49Z", "checkpoint_note": "", "summary": "UsbDeviceMonitor 實作完成：node-usb hotplug + idevice CLI wrapper + IPC 推送，6 個 vitest 單元測試全通過"}

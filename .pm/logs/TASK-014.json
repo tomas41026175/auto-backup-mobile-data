@@ -1,0 +1,18 @@
+{
+  "task_id": "TASK-014",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-11T02:44:06Z",
+      "ended": "2026-03-11T02:59:21Z",
+      "duration_minutes": 19,
+      "outcome": "COMPLETE",
+      "summary": "Dashboard USB \u72c0\u614b\u6574\u5408 + BackupProgress \u5143\u4ef6 + 39 \u500b vitest \u5143\u4ef6\u6e2c\u8a66\u5168\u901a\u904e",
+      "acceptance_passed": true,
+      "retry_reason": null,
+      "interrupted": false
+    }
+  ],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

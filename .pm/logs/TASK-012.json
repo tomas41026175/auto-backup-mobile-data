@@ -1,0 +1,18 @@
+{
+  "task_id": "TASK-012",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-11T02:44:06Z",
+      "ended": "2026-03-11T02:57:49Z",
+      "duration_minutes": 14,
+      "outcome": "COMPLETE",
+      "summary": "UsbDeviceMonitor \u5be6\u4f5c\u5b8c\u6210\uff0c\u542b IPC \u63a8\u9001\u8207 6 \u500b vitest \u55ae\u5143\u6e2c\u8a66",
+      "acceptance_passed": true,
+      "retry_reason": null,
+      "interrupted": false
+    }
+  ],
+  "total_runs": 1,
+  "final_outcome": "COMPLETE"
+}

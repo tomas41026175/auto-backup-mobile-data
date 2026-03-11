@@ -1,0 +1,29 @@
+{
+  "task_id": "TASK-013",
+  "runs": [
+    {
+      "run_id": 1,
+      "started": "2026-03-11T02:44:06Z",
+      "ended": "2026-03-11T04:45:35Z",
+      "duration_minutes": 36,
+      "outcome": "INTERRUPTED",
+      "summary": "API rate limit \u4e2d\u65b7\uff0cAfcBackupManager \u8349\u7a3f\u5efa\u7acb\u4f46\u672a\u5b8c\u6210",
+      "acceptance_passed": false,
+      "retry_reason": null,
+      "interrupted": true
+    },
+    {
+      "run_id": 2,
+      "started": "2026-03-11T04:45:35Z",
+      "ended": "2026-03-11T04:47:57Z",
+      "duration_minutes": 5,
+      "outcome": "COMPLETE",
+      "summary": "AfcBackupManager \u5b8c\u6574\u5be6\u4f5c\uff0c11/11 \u6e2c\u8a66\u901a\u904e",
+      "acceptance_passed": true,
+      "retry_reason": "API rate limit \u4e2d\u65b7\uff0c\u5f9e checkpoint \u7e7c\u7e8c",
+      "interrupted": false
+    }
+  ],
+  "total_runs": 2,
+  "final_outcome": "COMPLETE"
+}

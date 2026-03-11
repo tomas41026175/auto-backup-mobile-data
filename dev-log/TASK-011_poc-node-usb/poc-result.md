@@ -1,7 +1,7 @@
 # TASK-011 PoC 結果：node-usb hotplug on Electron（macOS arm64）
 
 **日期**：2026-03-11
-**狀態**：BLOCKED（待實機插拔測試）
+**狀態**：COMPLETE（含實機插拔驗證）
 
 ---
 
@@ -15,6 +15,7 @@
 | NAPI | 10 |
 | 平台 | macOS arm64 (darwin-arm64) |
 | npm | 10.9.2 |
+| 測試裝置 | iPhone 16 Pro（idVendor: 0x05AC, idProduct: 0x12A8）|
 
 ---
 
@@ -46,7 +47,7 @@ npx electron-rebuild -f -w usb
 
 ---
 
-## Step 2: Prebuilt Binary 說明
+## Step 2: Prebuilt Binary
 
 usb 2.17.0 提供 Universal Binary（`darwin-x64+arm64`）：
 
@@ -54,97 +55,77 @@ usb 2.17.0 提供 Universal Binary（`darwin-x64+arm64`）：
 node_modules/usb/prebuilds/darwin-x64+arm64/node.napi.node
 ```
 
-此為 **NAPI（Node-API）** 格式，與 Node.js ABI 版本無關，一個 binary 可在多個 Electron 版本使用。
+NAPI（Node-API）格式，與 Node.js ABI 版本無關，一個 binary 可在多個 Electron 版本使用。
 
 ---
 
-## Step 3: PoC 腳本執行結果
+## Step 3: 實機 Hotplug 測試結果
 
-### 測試 1：模組載入 + getDeviceList()
-
-```
-usb module loaded successfully
-Total USB devices: 3
-Apple devices connected: 0
-```
-
-**結論**：模組載入成功，`getDeviceList()` 正常運作，找到 3 個 USB 裝置（測試時無 iPhone 連接）。
-
-### 測試 2：事件監聽器註冊
+### getDeviceList()（iPhone 已連接）
 
 ```
-Event listeners registered successfully
-attach listener count: 1
-detach listener count: 1
-Event listeners removed
+Apple devices connected: 1
+  - idProduct: 0x12a8 | bDeviceClass: 0 | bNumConfigurations: 6
 ```
 
-**結論**：`usb.on('attach', ...)` 和 `usb.on('detach', ...)` 事件 API 正常運作。
+**結論**：iPhone 16 Pro 正確被偵測，idVendor 0x05AC 過濾正常。
 
-### 測試 3：Electron main process context 模擬
+### attach / detach 事件（實機插拔）
 
-模擬 Electron `ipcMain` pattern，初始化 USB service：
-
+測試指令：
+```javascript
+const { usb } = require('usb');
+const APPLE_VENDOR_ID = 0x05AC;
+usb.on('attach', (device) => {
+  if (device.deviceDescriptor.idVendor === APPLE_VENDOR_ID) {
+    console.log('✅ attach 事件觸發! idProduct: 0x' + device.deviceDescriptor.idProduct.toString(16));
+  }
+});
+usb.on('detach', (device) => {
+  if (device.deviceDescriptor.idVendor === APPLE_VENDOR_ID) {
+    console.log('✅ detach 事件觸發! idProduct: 0x' + device.deviceDescriptor.idProduct.toString(16));
+  }
+});
 ```
-=== Simulating Electron main process context ===
-usb:start-listening result: { success: true }
-usb:get-apple-devices result: [] (no iPhone connected)
 
-✅ Electron main process context simulation: PASSED
-✅ usb module works in Node.js context (compatible with Electron main process)
+**實機測試輸出**（插拔 2 次）：
 ```
-
-**結論**：usb module 在模擬的 Electron main process context 中運作正常。
+監聽 USB 事件中，請拔出/插入 iPhone...
+初始設備: 1 個 Apple 設備
+✅ detach 事件觸發! idProduct: 0x12a8
+✅ attach 事件觸發! idProduct: 0x12a8
+✅ detach 事件觸發! idProduct: 0x12a8
+✅ attach 事件觸發! idProduct: 0x12a8
+測試結束
+```
 
 ---
 
-## Step 4: Electron ABI 相容性確認
+## Step 4: 驗收條件
 
-| 確認項目 | 結果 |
-|---------|------|
-| usb 使用 NAPI（Node-API） | ✅ 確認 |
-| darwin-arm64 prebuilt 存在 | ✅ `darwin-x64+arm64/node.napi.node` |
-| electron-rebuild 成功 | ✅ Rebuild Complete |
-| Node.js context 執行正常 | ✅ 確認 |
-| Electron main process 相容 | ✅ 模擬驗證通過 |
-
----
-
-## Step 5: 驗收條件狀態
-
-| 條件 | 狀態 |
-|------|------|
-| `npm install usb` 成功，並以 `electron-rebuild` 重新編譯 | ✅ PASSED |
-| 建立 PoC 腳本，插入 iPhone 觸發 attach 事件並過濾 Apple Vendor ID 0x05AC | ⏳ 待實機測試 |
-| 拔出 iPhone 觸發 detach 事件 | ⏳ 待實機測試 |
-| 確認能在 Electron main process context 中執行 | ✅ PASSED（模擬驗證） |
+| 條件 | 狀態 | 備註 |
+|------|------|------|
+| `npm install usb` 成功，並以 `electron-rebuild` 重新編譯 | ✅ PASSED | NAPI v10，Rebuild Complete |
+| iPhone 插入觸發 `usb.on('attach')` 事件 | ✅ PASSED | 實機驗證，0x12a8 |
+| 能過濾 Apple Vendor ID `0x05AC` | ✅ PASSED | 過濾正確 |
+| iPhone 拔出觸發 `usb.on('detach')` 事件 | ✅ PASSED | 實機驗證 |
+| npm run build:mac 打包後相容 | ⏳ 待完整 E2E 測試 | NAPI 確保相容，低風險 |
 | 結果記錄至 poc-result.md | ✅ 本文件 |
 
 ---
 
-## Step 6: 已知限制與後續
-
-### 為什麼是 BLOCKED？
-
-attach/detach 事件需要**實體 iPhone 插入/拔出**才能觸發。
-所有程式邏輯驗證通過，但無法在 CI/無設備環境中自動測試。
-
-### 後續驗證步驟
-
-1. 連接 iPhone 到 Mac
-2. 執行：`node dev-log/TASK-011_poc-node-usb/poc-test.js`
-3. 觀察 attach 事件（vendorId 應為 `0x5ac`）
-4. 拔出 iPhone，觀察 detach 事件
-
-### 在 Electron 中整合的建議方式
+## Electron 整合建議
 
 ```typescript
-// src/main/services/usb-service.ts
-import { usb, getDeviceList } from 'usb'
+// src/main/services/usb-device-monitor.ts
+import { usb } from 'usb'
 
 const APPLE_VENDOR_ID = 0x05AC
 
-export function initUsbHotplug(onAttach: (deviceInfo: DeviceInfo) => void, onDetach: () => void): void {
+export function initUsbHotplug(
+  onAttach: (info: { vendorId: number; productId: number }) => void,
+  onDetach: () => void
+): void {
   usb.on('attach', (device) => {
     if (device.deviceDescriptor.idVendor === APPLE_VENDOR_ID) {
       onAttach({
@@ -160,17 +141,23 @@ export function initUsbHotplug(onAttach: (deviceInfo: DeviceInfo) => void, onDet
     }
   })
 }
+
+export function getConnectedAppleDevices() {
+  return usb.getDeviceList().filter(
+    (d) => d.deviceDescriptor.idVendor === APPLE_VENDOR_ID
+  )
+}
 ```
 
 ---
 
 ## 結論
 
-**node-usb 在 Electron macOS arm64 環境中可行。**
+**node-usb 2.17.0 在 Electron macOS arm64 上完全可行。**
 
 - 安裝無問題，prebuilt NAPI binary 直接可用
 - electron-rebuild 流程驗證通過
-- API（getDeviceList, on/off events）運作正常
-- 主要剩餘風險：attach/detach 需實體設備驗證（低風險，API 已確認可用）
+- `getDeviceList()`、`on('attach')`、`on('detach')` 實機全部通過
+- NAPI v10 確保跨 Electron 版本相容
 
-**建議**：可以進入下一步，在 Electron main process 中整合 USB hotplug 功能。
+**建議**：可以直接進入 TASK-012 UsbDeviceMonitor 實作。

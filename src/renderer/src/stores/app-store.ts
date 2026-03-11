@@ -10,6 +10,11 @@ import type {
   BackupErrorDetail
 } from '../../../shared/types'
 
+export interface FuseStatus {
+  installed: boolean
+  approved: boolean
+}
+
 interface AppStore {
   devices: Device[]
   currentBackup: BackupJob | null
@@ -19,6 +24,7 @@ interface AppStore {
   backupProgressDetail: BackupProgressDetail | null
   backupComplete: BackupCompleteDetail | null
   backupError: BackupErrorDetail | null
+  fuseStatus: FuseStatus | null
 
   setDevices: (devices: Device[]) => void
   addDevice: (device: Device) => void
@@ -30,6 +36,7 @@ interface AppStore {
   setBackupProgressDetail: (progress: BackupProgressDetail | null) => void
   setBackupComplete: (detail: BackupCompleteDetail | null) => void
   setBackupError: (error: BackupErrorDetail | null) => void
+  setFuseStatus: (status: FuseStatus | null) => void
 }
 
 const useAppStore = create<AppStore>((set) => ({
@@ -41,6 +48,7 @@ const useAppStore = create<AppStore>((set) => ({
   backupProgressDetail: null,
   backupComplete: null,
   backupError: null,
+  fuseStatus: null,
 
   setDevices: (devices) => set({ devices }),
   addDevice: (device) =>
@@ -60,6 +68,7 @@ const useAppStore = create<AppStore>((set) => ({
   setBackupProgressDetail: (progress) => set({ backupProgressDetail: progress }),
   setBackupComplete: (detail) => set({ backupComplete: detail }),
   setBackupError: (error) => set({ backupError: error }),
+  setFuseStatus: (status) => set({ fuseStatus: status }),
 }))
 
 export default useAppStore

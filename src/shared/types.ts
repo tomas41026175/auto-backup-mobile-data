@@ -63,11 +63,39 @@ export interface Settings {
 
 export type AppStatus = 'idle' | 'scanning' | 'backing-up' | 'error'
 
+export interface UsbDevice {
+  udid: string
+  deviceName: string
+  productType: string
+  productVersion: string
+}
+
+export interface BackupProgressDetail {
+  current: number
+  total: number
+  fileName: string
+  speed: number
+}
+
+export interface BackupCompleteDetail {
+  fileCount: number
+  totalSize: number
+  durationMs: number
+}
+
+export interface BackupErrorDetail {
+  message: string
+}
+
 export interface AppState {
   devices: Device[]
   currentBackup: BackupJob | null
   status: AppStatus
   mdnsAvailable: boolean
+  usbDevice: UsbDevice | null
+  backupProgressDetail: BackupProgressDetail | null
+  backupComplete: BackupCompleteDetail | null
+  backupError: BackupErrorDetail | null
 }
 
 export interface BackupTask {

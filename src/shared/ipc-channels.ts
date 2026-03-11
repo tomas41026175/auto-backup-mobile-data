@@ -1,12 +1,15 @@
 import type {
   AppState,
+  BackupCompleteDetail,
+  BackupErrorDetail,
   BackupJob,
+  BackupProgressDetail,
   BackupRecord,
   BackupTask,
   Device,
   PairedDevice,
   Settings,
-  UsbDeviceInfo
+  UsbDevice
 } from './types'
 
 /**
@@ -19,8 +22,12 @@ export interface IpcListenerChannels {
   'backup-progress': [job: BackupJob]
   'backup-complete': [record: BackupRecord]
   'mdns-status': [available: boolean]
-  'device-usb-connected': [info: UsbDeviceInfo]
-  'device-usb-disconnected': [udid: string]
+  'device-usb-connected': [device: UsbDevice]
+  'device-usb-disconnected': []
+  'backup-progress-detail': [progress: BackupProgressDetail]
+  'backup-complete-detail': [detail: BackupCompleteDetail]
+  'backup-error': [error: BackupErrorDetail]
+  'tray-update': [status: 'backing-up' | 'idle' | 'error']
 }
 
 /**

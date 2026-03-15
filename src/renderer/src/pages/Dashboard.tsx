@@ -10,11 +10,14 @@ import {
   Loader2,
   Play,
   Usb,
+  RefreshCw,
+  FolderOpen,
 } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import useAppStore from '../stores/app-store'
 import type { FuseStatus } from '../stores/app-store'
 import { BackupProgress } from '../components/BackupProgress'
+import { WindowsDriversBanner } from '../components/WindowsDriversBanner'
 import type { Settings, BackupTask, PairedDevice } from '../../../shared/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -185,25 +188,64 @@ function ErrorStatusCard({ onGoToSettings }: { onGoToSettings: () => void }): Re
 interface PairedDeviceCardProps {
   device: PairedDevice
   isOnline: boolean
+  isBackingUp: boolean
+  onBackup: () => void
+  onToggleAutoBackup: () => void
+  onOpenFolder: () => void
 }
 
-function PairedDeviceCard({ device, isOnline }: PairedDeviceCardProps): React.JSX.Element {
+function PairedDeviceCard({
+  device,
+  isOnline,
+  isBackingUp,
+  onBackup,
+  onToggleAutoBackup,
+  onOpenFolder,
+}: PairedDeviceCardProps): React.JSX.Element {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-gray-700 bg-gray-800/60 p-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-600 bg-gray-700">
-        <Smartphone size={18} className="text-gray-300" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-gray-100">{device.name}</p>
-        <p className="text-xs text-gray-500">{device.ip}</p>
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-300">
-          已配對
-        </span>
-        <div className="flex items-center gap-1">
-          <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`} />
-          <span className="text-[10px] text-gray-500">{isOnline ? '線上' : '離線'}</span>
+    <div className="rounded-xl border border-gray-700 bg-gray-800/60 p-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-600 bg-gray-700">
+          <Smartphone size={18} className="text-gray-300" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-gray-100">{device.name}</p>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`} />
+            <span className="text-[10px] text-gray-500">{isOnline ? '線上' : '離線'}</span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Auto-backup toggle */}
+          <button
+            onClick={onToggleAutoBackup}
+            title={device.autoBackup ? '關閉自動同步' : '開啟自動同步'}
+            className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
+              device.autoBackup
+                ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
+                : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+            }`}
+          >
+            <RefreshCw size={9} />
+            自動
+          </button>
+          {/* Open folder button */}
+          <button
+            onClick={onOpenFolder}
+            title="打開備份資料夾"
+            className="flex items-center justify-center rounded-lg border border-gray-600 bg-gray-700 p-1.5 text-gray-400 hover:bg-gray-600 hover:text-gray-200 transition-colors"
+          >
+            <FolderOpen size={13} />
+          </button>
+          {/* Per-device backup button */}
+          <button
+            onClick={onBackup}
+            disabled={!isOnline || isBackingUp}
+            className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
+          >
+            {isBackingUp ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />}
+            備份
+          </button>
         </div>
       </div>
     </div>
@@ -263,7 +305,7 @@ function QuickStats({ monthlyCount, lastBackupTime, backupPath }: QuickStatsProp
 
 function Dashboard(): React.JSX.Element {
   const navigate = useNavigate()
-  const { devices, currentBackup, status, mdnsAvailable, usbDevice, backupError, backupComplete, fuseStatus } =
+  const { devices, currentBackup, status, mdnsAvailable, usbDevice, backupError, backupComplete, fuseStatus, windowsDriversStatus } =
     useAppStore(
       useShallow((state) => ({
         devices: state.devices,
@@ -274,6 +316,7 @@ function Dashboard(): React.JSX.Element {
         backupError: state.backupError,
         backupComplete: state.backupComplete,
         fuseStatus: state.fuseStatus,
+        windowsDriversStatus: state.windowsDriversStatus,
       }))
     )
 
@@ -285,15 +328,24 @@ function Dashboard(): React.JSX.Element {
   useEffect(() => {
     let cancelled = false
 
-    window.api
-      .invoke('check-macos-fuse')
-      .then((result) => {
-        if (!cancelled) useAppStore.getState().setFuseStatus(result)
-      })
-      .catch((err) => {
-        console.error('[Dashboard] check-macos-fuse failed:', err)
-        if (!cancelled) useAppStore.getState().setFuseStatus(null)
-      })
+    if (window.electron.process.platform === 'win32') {
+      window.api
+        .invoke('check-windows-drivers')
+        .then((result) => {
+          if (!cancelled && result) useAppStore.getState().setWindowsDriversStatus(result)
+        })
+        .catch(() => {})
+    } else {
+      window.api
+        .invoke('check-macos-fuse')
+        .then((result) => {
+          if (!cancelled) useAppStore.getState().setFuseStatus(result)
+        })
+        .catch((err) => {
+          console.error('[Dashboard] check-macos-fuse failed:', err)
+          if (!cancelled) useAppStore.getState().setFuseStatus(null)
+        })
+    }
 
     window.api
       .invoke('get-settings')
@@ -312,6 +364,7 @@ function Dashboard(): React.JSX.Element {
       .then((records) => {
         const now = new Date()
         const thisMonthCount = records.filter((r) => {
+          if (r.status !== 'success') return false
           const d = new Date(r.completedAt)
           return (
             d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
@@ -344,21 +397,48 @@ function Dashboard(): React.JSX.Element {
   const isBackingUp = status === 'backing-up' || currentBackup !== null
   const hasBackupFeedback = backupError !== null || backupComplete !== null || isBackingUp
 
-  const handleStartBackup = async (): Promise<void> => {
-    if (pairedDevices.length === 0) return
+  const [lastBackupDeviceId, setLastBackupDeviceId] = useState<string | null>(null)
+
+  const handleStartBackup = async (device: PairedDevice): Promise<void> => {
     useAppStore.getState().setBackupError(null)
     useAppStore.getState().setBackupComplete(null)
-    const firstDevice = pairedDevices[0]
+    setLastBackupDeviceId(device.id)
     const task: BackupTask = {
-      deviceId: firstDevice.id,
-      direction: firstDevice.syncDirection,
-      syncTypes: firstDevice.syncTypes,
+      deviceId: device.id,
+      direction: device.syncDirection,
+      syncTypes: device.syncTypes,
     }
     await window.api.invoke('start-backup', task)
   }
 
+  const handleToggleAutoBackup = async (device: PairedDevice): Promise<void> => {
+    const newAutoBackup = !device.autoBackup
+    await window.api.invoke('update-device-config', {
+      deviceId: device.id,
+      config: { autoBackup: newAutoBackup },
+    })
+    setSettings((prev) =>
+      prev
+        ? {
+            ...prev,
+            pairedDevices: prev.pairedDevices.map((d) =>
+              d.id === device.id ? { ...d, autoBackup: newAutoBackup } : d
+            ),
+          }
+        : prev
+    )
+  }
+
+  const handleOpenFolder = async (device: PairedDevice): Promise<void> => {
+    const backupPath = settings?.backupPath
+    if (!backupPath) return
+    const folderPath = `${backupPath}\\${device.id}`
+    await window.api.invoke('open-backup-folder', folderPath)
+  }
+
   const handleRetry = (): void => {
-    void handleStartBackup()
+    const device = pairedDevices.find((d) => d.id === lastBackupDeviceId) ?? pairedDevices[0]
+    if (device) void handleStartBackup(device)
   }
 
   if (settingsLoading) {
@@ -374,7 +454,10 @@ function Dashboard(): React.JSX.Element {
       <MdnsBanner mdnsAvailable={mdnsAvailable} />
 
       {/* macFUSE status banner */}
-      <MacFuseBanner fuseStatus={fuseStatus} />
+      {window.electron.process.platform === 'darwin' && <MacFuseBanner fuseStatus={fuseStatus} />}
+      {window.electron.process.platform === 'win32' && windowsDriversStatus !== null && (
+        <WindowsDriversBanner status={windowsDriversStatus} />
+      )}
 
       {/* USB device connection banner */}
       {usbDevice !== null && (
@@ -406,8 +489,17 @@ function Dashboard(): React.JSX.Element {
           <div className="flex flex-col gap-2">
             {pairedDevices.map((device) => {
               const isOnline = devices.some((d) => d.id === device.id)
+              const isThisDeviceBacking = isBackingUp && currentBackup?.deviceId === device.id
               return (
-                <PairedDeviceCard key={device.id} device={device} isOnline={isOnline} />
+                <PairedDeviceCard
+                  key={device.id}
+                  device={device}
+                  isOnline={isOnline}
+                  isBackingUp={isThisDeviceBacking}
+                  onBackup={() => void handleStartBackup(device)}
+                  onToggleAutoBackup={() => void handleToggleAutoBackup(device)}
+                  onOpenFolder={() => void handleOpenFolder(device)}
+                />
               )
             })}
           </div>
@@ -418,18 +510,6 @@ function Dashboard(): React.JSX.Element {
             lastBackupTime={lastBackupTime}
             backupPath={settings?.backupPath ?? ''}
           />
-
-          {/* Start backup button */}
-          {!isBackingUp && (
-            <button
-              onClick={handleStartBackup}
-              disabled={pairedDevices.length === 0}
-              className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
-            >
-              <Play size={15} />
-              立即備份
-            </button>
-          )}
         </div>
       )}
     </div>

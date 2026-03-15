@@ -1,5 +1,7 @@
 import { app, shell, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join } from 'path'
+import { execFile as execFileCb } from 'child_process'
+import { promisify } from 'util'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { createTray } from './tray'
@@ -8,16 +10,28 @@ import { createSettingsStore } from './services/settings-store'
 import { createBackupHistoryStore } from './services/backup-history-store'
 import { createDeviceScanner } from './services/device-scanner'
 import { AfcBackupManager } from './services/afc-backup-manager'
+import { ICloudSyncManager } from './services/icloud-sync-manager'
 import { createNotificationService } from './services/notification-service'
 import { createUsbDeviceMonitor } from './services/usb-device-monitor'
+import { resolveBinaryPaths } from './utils/platform-utils'
 import { getMainWindow, setMainWindow } from './window-manager'
 import type { DeviceScanner } from './services/device-scanner'
 import type { UsbDeviceMonitor } from './services/usb-device-monitor'
+import type { NotificationService } from './services/notification-service'
+import type { SettingsStore } from './services/settings-store'
 import type { Device, BackupJob, BackupRecord, UsbDevice, UsbDeviceInfo } from '../shared/types'
+
+const execFile = promisify(execFileCb)
+const WIFI_POLL_INTERVAL_MS = 15_000
 
 // AppUserModelId 必須在 app.whenReady() 之前呼叫（單一呼叫點，移除重複）
 if (process.platform === 'win32') {
   app.setAppUserModelId(is.dev ? process.execPath : 'com.autobackup.app')
+}
+
+// 單一實例鎖：第二個實例啟動時，聚焦現有視窗後退出
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
 }
 
 let isQuitting = false
@@ -70,6 +84,15 @@ function createWindow(): void {
   }
 }
 
+app.on('second-instance', () => {
+  const win = getMainWindow()
+  if (win) {
+    if (win.isMinimized()) win.restore()
+    win.show()
+    win.focus()
+  }
+})
+
 app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -88,8 +111,9 @@ app.whenReady().then(() => {
   const scanner = createDeviceScanner(settingsStore)
   deviceScanner = scanner
   const backupManager = new AfcBackupManager(settingsStore, backupHistoryStore)
+  const icloudSyncManager = new ICloudSyncManager()
 
-  const notificationService = createNotificationService(getMainWindow, backupManager)
+  const notificationService = createNotificationService(getMainWindow, backupManager, settingsStore)
 
   // 初始化 USB 裝置監控
   const usbMonitor = createUsbDeviceMonitor()
@@ -153,8 +177,70 @@ app.whenReady().then(() => {
     getMainWindow()?.hide()
   })
 
-  setupIpcHandlers({ settingsStore, backupHistoryStore, deviceScanner: scanner, backupManager })
+  setupIpcHandlers({ settingsStore, backupHistoryStore, deviceScanner: scanner, backupManager, icloudSyncManager })
+
+  if (process.platform === 'win32') {
+    startWindowsWifiPoll(settingsStore, notificationService)
+  }
 })
+
+function startWindowsWifiPoll(
+  settingsStore: SettingsStore,
+  notificationService: NotificationService
+): void {
+  const knownOnline = new Set<string>()
+  const paths = resolveBinaryPaths()
+
+  async function poll(): Promise<void> {
+    let udids: string[] = []
+    try {
+      const { stdout } = await execFile(paths.idevice_id, ['-l', '-n'])
+      udids = stdout.trim().split('\n')
+        .map((l) => l.trim().split(' ')[0])
+        .filter((l) => l.length > 0)
+    } catch {
+      udids = []
+    }
+
+    const nowOnline = new Set(udids)
+
+    // Newly connected devices
+    for (const udid of nowOnline) {
+      if (!knownOnline.has(udid)) {
+        knownOnline.add(udid)
+        const settings = settingsStore.getSettings()
+        const paired = settings.pairedDevices.find((d) => d.id === udid)
+        const device: Device = {
+          id: udid,
+          name: paired?.name ?? 'iPhone',
+          ip: '',
+          serviceType: 'wifi',
+          paired: !!paired
+        }
+        getMainWindow()?.webContents.send('device-found', device)
+        if (paired) {
+          notificationService.handleDeviceStableOnline(device)
+        }
+      }
+    }
+
+    // Disconnected devices
+    for (const udid of [...knownOnline]) {
+      if (!nowOnline.has(udid)) {
+        knownOnline.delete(udid)
+        getMainWindow()?.webContents.send('device-lost', udid)
+      }
+    }
+  }
+
+  // Delay first poll — renderer's get-current-state handles initial state
+  setTimeout(() => {
+    poll().catch((err: unknown) => console.error('[WifiPoll]', err))
+    setInterval(() => {
+      poll().catch((err: unknown) => console.error('[WifiPoll]', err))
+    }, WIFI_POLL_INTERVAL_MS)
+  }, WIFI_POLL_INTERVAL_MS)
+}
 
 // 防止 app 因視窗全關閉而退出（交由 Tray 控制）
 app.on('window-all-closed', () => {

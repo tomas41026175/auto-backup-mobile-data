@@ -11,6 +11,7 @@ export interface PairedDevice {
   addedAt: string
   syncDirection: SyncDirection
   syncTypes: SyncFileType[]
+  autoBackup: boolean
 }
 
 export interface Device {
@@ -59,6 +60,8 @@ export interface Settings {
   backupPath: string
   pairedDevices: PairedDevice[]
   autoStart: boolean
+  icloudAppleId?: string
+  icloudPassword?: string
 }
 
 export type AppStatus = 'idle' | 'scanning' | 'backing-up' | 'error'
@@ -120,4 +123,31 @@ export interface UsbDeviceInfo {
 export interface FuseStatus {
   installed: boolean
   approved: boolean
+}
+
+export interface WindowsDriverStatus {
+  winfsp: boolean           // WinFsp installed (FUSE backend — informational, not required for afcclient)
+  appleMobileDevice: boolean // Apple Mobile Device Service running (usbmuxd)
+  libimobiledevice: boolean  // afcclient.exe present in extraResources
+}
+
+export interface ICloudCredentials {
+  appleId: string
+  password: string
+}
+
+export interface ICloudSyncStatus {
+  state: 'idle' | 'authenticating' | 'scanning' | 'downloading' | 'complete' | 'error' | 'waiting_2fa'
+  current: number
+  total: number
+  skipped: number
+  currentFile: string
+  currentAlbum: string
+  bytesDownloaded: number
+  error?: string
+}
+
+export interface ICloudAlbum {
+  name: string
+  count: number
 }

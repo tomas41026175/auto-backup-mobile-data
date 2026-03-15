@@ -13,18 +13,18 @@ interface PathStatusConfig {
 const PATH_STATUS_CONFIG: Record<PathStatus, PathStatusConfig> = {
   ok: {
     icon: <Wifi className="h-3.5 w-3.5" />,
-    text: '路徑存在，磁碟可用',
-    colorClass: 'text-[--color-success]',
+    text: '路徑存在，硬碟可存取',
+    colorClass: 'text-(--color-success)',
   },
   error: {
     icon: <WifiOff className="h-3.5 w-3.5" />,
     text: '路徑不存在，外接硬碟可能未掛載',
-    colorClass: 'text-[--color-warning]',
+    colorClass: 'text-(--color-warning)',
   },
   unset: {
     icon: null,
     text: '請選擇備份目標路徑',
-    colorClass: 'text-[--color-text-muted]',
+    colorClass: 'text-(--color-text-muted)',
   },
 }
 
@@ -71,8 +71,6 @@ export function PathPicker({ value, onChange }: PathPickerProps): React.ReactEle
 
   async function handleBrowse(): Promise<void> {
     try {
-      // 透過 electron dialog IPC 選擇路徑
-      // 使用 electron 的 ipcRenderer 直接 invoke（dialog channel 在主程序實作）
       const selectedPath = await window.electron.ipcRenderer.invoke('select-backup-path') as string | null
       if (selectedPath) {
         onChange(selectedPath)
@@ -86,19 +84,19 @@ export function PathPicker({ value, onChange }: PathPickerProps): React.ReactEle
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-[--color-text-secondary]">目標路徑</label>
+      <label className="text-xs font-medium text-(--color-text-secondary)">目標路徑</label>
       <div className="flex gap-2">
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="選擇或輸入備份路徑..."
+          placeholder="請選擇或輸入備份路徑.."
           className={cn(
-            'h-9 flex-1 rounded-lg border bg-[--color-bg-raised] px-3 text-sm text-[--color-text]',
-            'placeholder:text-[--color-text-muted]',
+            'h-9 flex-1 rounded-lg border bg-(--color-bg-raised) px-3 text-sm text-(--color-text)',
+            'placeholder:text-(--color-text-muted)',
             'transition-colors focus:outline-none focus:ring-1',
             pathStatus === 'error'
-              ? 'border-[--color-error]/50 focus:ring-[--color-error]/30'
-              : 'border-[--color-border] hover:border-[--color-border-strong] focus:border-[--color-primary]/50 focus:ring-[--color-primary]/20',
+              ? 'border-(--color-error)/50 focus:ring-(--color-error)/30'
+              : 'border-(--color-border) hover:border-(--color-border-strong) focus:border-(--color-primary)/50 focus:ring-(--color-primary)/20',
           )}
         />
         <Button
@@ -108,7 +106,7 @@ export function PathPicker({ value, onChange }: PathPickerProps): React.ReactEle
           onClick={handleBrowse}
           className="shrink-0"
         >
-          選擇資料夾
+          瀏覽資料夾
         </Button>
       </div>
       <p
@@ -120,7 +118,7 @@ export function PathPicker({ value, onChange }: PathPickerProps): React.ReactEle
       >
         {statusConfig.icon}
         {statusConfig.text}
-        {isValidating && ' (驗證中...)'}
+        {isValidating && ' (驗證中..)'}
       </p>
     </div>
   )

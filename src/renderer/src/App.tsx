@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
-import { LayoutDashboard, Settings as SettingsIcon, History as HistoryIcon } from 'lucide-react'
+import { LayoutDashboard, Settings as SettingsIcon, History as HistoryIcon, Cloud } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import History from './pages/History'
 import Settings from './pages/Settings'
+import ICloud from './pages/ICloud'
 import { initializeStores, setupIpcListeners } from './stores/app-store'
 
 // ── Nav items definition ──────────────────────────────────────────────────────
@@ -19,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', label: '儀表板', icon: <LayoutDashboard size={18} />, end: true },
   { to: '/settings', label: '設定', icon: <SettingsIcon size={18} /> },
   { to: '/history', label: '備份紀錄', icon: <HistoryIcon size={18} /> },
+  { to: '/icloud', label: 'iCloud', icon: <Cloud size={18} /> },
 ]
 
 function navLinkClass({ isActive }: { isActive: boolean }): string {
@@ -95,6 +97,7 @@ function App(): React.JSX.Element {
           <Route path="/" element={<Dashboard />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/history" element={<History />} />
+          <Route path="/icloud" element={<ICloud />} />
         </Routes>
       </AppLayout>
     </HashRouter>

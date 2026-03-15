@@ -8,10 +8,11 @@ import type {
   BackupProgressDetail,
   BackupCompleteDetail,
   BackupErrorDetail,
-  FuseStatus
+  FuseStatus,
+  WindowsDriverStatus
 } from '../../../shared/types'
 
-export type { FuseStatus }
+export type { FuseStatus, WindowsDriverStatus }
 
 interface AppStore {
   devices: Device[]
@@ -23,6 +24,7 @@ interface AppStore {
   backupComplete: BackupCompleteDetail | null
   backupError: BackupErrorDetail | null
   fuseStatus: FuseStatus | null
+  windowsDriversStatus: WindowsDriverStatus | null
 
   setDevices: (devices: Device[]) => void
   addDevice: (device: Device) => void
@@ -35,6 +37,7 @@ interface AppStore {
   setBackupComplete: (detail: BackupCompleteDetail | null) => void
   setBackupError: (error: BackupErrorDetail | null) => void
   setFuseStatus: (status: FuseStatus | null) => void
+  setWindowsDriversStatus: (status: WindowsDriverStatus | null) => void
 }
 
 const useAppStore = create<AppStore>((set) => ({
@@ -47,6 +50,7 @@ const useAppStore = create<AppStore>((set) => ({
   backupComplete: null,
   backupError: null,
   fuseStatus: null,
+  windowsDriversStatus: null,
 
   setDevices: (devices) => set({ devices }),
   addDevice: (device) =>
@@ -67,6 +71,7 @@ const useAppStore = create<AppStore>((set) => ({
   setBackupComplete: (detail) => set({ backupComplete: detail }),
   setBackupError: (error) => set({ backupError: error }),
   setFuseStatus: (status) => set({ fuseStatus: status }),
+  setWindowsDriversStatus: (status) => set({ windowsDriversStatus: status }),
 }))
 
 export default useAppStore

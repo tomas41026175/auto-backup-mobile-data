@@ -32,21 +32,21 @@ const SYNC_DIRECTIONS: SyncDirectionOption[] = [
   {
     id: 'mobile-to-pc',
     label: 'Mobile → PC',
-    sublabel: '備份照片到電腦',
+    sublabel: '備份到電腦',
     icon: <ArrowDownToLine className="h-4 w-4" />,
     available: true,
   },
   {
     id: 'pc-to-mobile',
     label: 'PC → Mobile',
-    sublabel: '即將推出',
+    sublabel: '推送到手機',
     icon: <ArrowUpFromLine className="h-4 w-4" />,
     available: false,
   },
   {
     id: 'bidirectional',
     label: '雙向同步',
-    sublabel: '即將推出',
+    sublabel: '雙向傳輸',
     icon: <ArrowLeftRight className="h-4 w-4" />,
     available: false,
   },
@@ -66,15 +66,15 @@ function SyncDirectionSelector({ value, onChange }: SyncDirectionSelectorProps):
           onClick={() => opt.available && onChange(opt.id)}
           aria-pressed={value === opt.id}
           disabled={!opt.available}
-          title={!opt.available ? '此功能尚未開放' : undefined}
+          title={!opt.available ? '此功能即將推出' : undefined}
           className={cn(
             'relative flex flex-1 flex-col items-center gap-1 rounded-lg border py-2.5 transition-all duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-primary]/50',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)/50',
             value === opt.id && opt.available
-              ? 'border-[--color-primary] bg-[--color-primary] text-white shadow-[0_0_14px_var(--color-primary-glow)]'
+              ? 'border-(--color-primary) bg-(--color-primary) text-white shadow-[0_0_14px_var(--color-primary-glow)]'
               : opt.available
-                ? 'border-[--color-border] bg-[--color-bg-raised] text-[--color-text-secondary] hover:border-[--color-border-strong] hover:text-[--color-text]'
-                : 'cursor-not-allowed border-[--color-border] bg-[--color-bg-surface] text-[--color-text-muted] opacity-50',
+                ? 'border-(--color-border) bg-(--color-bg-raised) text-(--color-text-secondary) hover:border-(--color-border-strong) hover:text-(--color-text)'
+                : 'cursor-not-allowed border-(--color-border) bg-(--color-bg-surface) text-(--color-text-muted) opacity-50',
           )}
         >
           {opt.icon}
@@ -82,13 +82,13 @@ function SyncDirectionSelector({ value, onChange }: SyncDirectionSelectorProps):
           <span
             className={cn(
               'text-[10px] leading-none',
-              value === opt.id && opt.available ? 'text-white/70' : 'text-[--color-text-muted]',
+              value === opt.id && opt.available ? 'text-white/70' : 'text-(--color-text-muted)',
             )}
           >
             {opt.sublabel}
           </span>
           {!opt.available && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-[--color-bg-overlay] px-1 py-px text-[9px] font-medium text-[--color-text-muted] ring-1 ring-[--color-border]">
+            <span className="absolute -right-1 -top-1 rounded-full bg-(--color-bg-overlay) px-1 py-px text-[9px] font-medium text-(--color-text-muted) ring-1 ring-(--color-border)">
               Soon
             </span>
           )}
@@ -139,17 +139,17 @@ function FileTypeChip({ item, selected, onToggle }: FileTypeChipProps): React.Re
       aria-pressed={selected}
       className={cn(
         'relative flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all duration-150',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[--color-primary]/50',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)/50',
         selected
           ? [
-              'border-[--color-primary] bg-[--color-primary]',
+              'border-(--color-primary) bg-(--color-primary)',
               'text-white',
               'shadow-[0_0_16px_var(--color-primary-glow)]',
             ]
           : [
-              'border-[--color-border] bg-[--color-bg-raised]',
-              'text-[--color-text-muted]',
-              'hover:border-[--color-border-strong] hover:bg-[--color-bg-overlay] hover:text-[--color-text-secondary]',
+              'border-(--color-border) bg-(--color-bg-raised)',
+              'text-(--color-text-muted)',
+              'hover:border-(--color-border-strong) hover:bg-(--color-bg-overlay) hover:text-(--color-text-secondary)',
             ],
       )}
     >
@@ -163,7 +163,7 @@ function FileTypeChip({ item, selected, onToggle }: FileTypeChipProps): React.Re
       </span>
       {item.icon}
       <span className="text-xs font-semibold leading-none">{item.label}</span>
-      <span className={cn('text-[10px] leading-none', selected ? 'text-white/70' : 'text-[--color-text-muted]')}>
+      <span className={cn('text-[10px] leading-none', selected ? 'text-white/70' : 'text-(--color-text-muted)')}>
         {item.ext}
       </span>
     </button>
@@ -174,11 +174,11 @@ function FileTypeChip({ item, selected, onToggle }: FileTypeChipProps): React.Re
 
 function SkeletonRow(): React.ReactElement {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[--color-border] bg-[--color-bg-raised] px-3 py-2.5">
-      <div className="h-8 w-8 animate-pulse rounded-md bg-[--color-bg-overlay]" />
+    <div className="flex items-center gap-3 rounded-lg border border-(--color-border) bg-(--color-bg-raised) px-3 py-2.5">
+      <div className="h-8 w-8 animate-pulse rounded-md bg-(--color-bg-overlay)" />
       <div className="flex-1 space-y-1.5">
-        <div className="h-3 w-32 animate-pulse rounded bg-[--color-bg-overlay]" />
-        <div className="h-2.5 w-48 animate-pulse rounded bg-[--color-bg-overlay]" />
+        <div className="h-3 w-32 animate-pulse rounded bg-(--color-bg-overlay)" />
+        <div className="h-2.5 w-48 animate-pulse rounded bg-(--color-bg-overlay)" />
       </div>
     </div>
   )
@@ -205,28 +205,28 @@ function PairedDeviceCard({
   const syncTypesSet = new Set<SyncFileType>(device.syncTypes)
 
   return (
-    <div className="overflow-hidden rounded-lg border border-[--color-border] bg-[--color-bg-raised]">
+    <div className="overflow-hidden rounded-lg border border-(--color-border) bg-(--color-bg-raised)">
       <button
         onClick={() => setExpanded((v) => !v)}
         className={cn(
           'flex w-full items-center gap-3 px-3 py-2.5 text-left',
-          'hover:bg-[--color-bg-overlay] transition-colors',
-          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[--color-primary]/40',
+          'hover:bg-(--color-bg-overlay) transition-colors',
+          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-(--color-primary)/40',
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[--color-primary-subtle]">
-          <Smartphone className="h-4 w-4 text-[--color-primary]" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-(--color-primary-subtle)">
+          <Smartphone className="h-4 w-4 text-(--color-primary)" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-[--color-text]">{device.name}</p>
-          <p className="truncate text-xs text-[--color-text-muted]">
+          <p className="truncate text-sm font-medium text-(--color-text)">{device.name}</p>
+          <p className="truncate text-xs text-(--color-text-muted)">
             {device.syncTypes.length} 個同步項目 · {device.ip}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <ChevronDown
             className={cn(
-              'h-4 w-4 text-[--color-text-muted] transition-transform duration-200',
+              'h-4 w-4 text-(--color-text-muted) transition-transform duration-200',
               expanded && 'rotate-180',
             )}
           />
@@ -234,19 +234,19 @@ function PairedDeviceCard({
       </button>
 
       {expanded && (
-        <div className="border-t border-[--color-border] bg-[--color-bg-surface] px-3 pb-3 pt-3">
+        <div className="border-t border-(--color-border) bg-(--color-bg-surface) px-3 pb-3 pt-3">
           <div className="mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[--color-text-muted]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-(--color-text-muted)">
               同步方向
             </span>
           </div>
           <SyncDirectionSelector value={device.syncDirection} onChange={onChangeSyncDirection} />
-          <div className="my-3 border-t border-[--color-border]" />
+          <div className="my-3 border-t border-(--color-border)" />
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[--color-text-muted]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-(--color-text-muted)">
               同步項目
             </span>
-            <span className="text-xs text-[--color-text-muted]">
+            <span className="text-xs text-(--color-text-muted)">
               已選 {device.syncTypes.length} / {FILE_TYPES.length}
             </span>
           </div>
@@ -261,9 +261,9 @@ function PairedDeviceCard({
             ))}
           </div>
           {device.syncTypes.length === 0 && (
-            <p className="mt-2 text-center text-xs text-[--color-warning]">請至少選擇一個同步項目</p>
+            <p className="mt-2 text-center text-xs text-(--color-warning)">請至少選擇一個同步項目</p>
           )}
-          <div className="mt-3 border-t border-[--color-border] pt-3">
+          <div className="mt-3 border-t border-(--color-border) pt-3">
             <Button
               variant="danger"
               size="sm"
@@ -294,15 +294,15 @@ function ScanDeviceCard({ device, onPair, isPairing }: ScanDeviceCardProps): Rea
     <div
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2.5',
-        'border border-[--color-border] bg-[--color-bg-raised]',
+        'border border-(--color-border) bg-(--color-bg-raised)',
       )}
     >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[--color-bg-overlay]">
-        <Smartphone className="h-4 w-4 text-[--color-text-secondary]" />
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-(--color-bg-overlay)">
+        <Smartphone className="h-4 w-4 text-(--color-text-secondary)" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-[--color-text]">{device.name}</p>
-        <p className="truncate text-xs text-[--color-text-muted]">
+        <p className="truncate text-sm font-medium text-(--color-text)">{device.name}</p>
+        <p className="truncate text-xs text-(--color-text-muted)">
           {device.ip} · {device.serviceType}
         </p>
       </div>
@@ -381,7 +381,7 @@ export function DeviceList({
       onDevicePaired(paired)
       setScanResults((prev) => prev.filter((d) => d.id !== device.id))
     } catch {
-      // 配對失敗，保留在列表中
+      // 配對失敗，留在列表中
     } finally {
       setPairingDeviceId(null)
     }
@@ -430,7 +430,7 @@ export function DeviceList({
     <div className="flex flex-col gap-3">
       {pairedDevices.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-[--color-text-muted]">已配對裝置</p>
+          <p className="text-xs text-(--color-text-muted)">已配對裝置</p>
           {pairedDevices.map((device) => (
             <PairedDeviceCard
               key={device.id}
@@ -475,16 +475,16 @@ export function DeviceList({
       )}
 
       {scanTimedOut && (
-        <p className="text-center text-xs text-[--color-text-muted]">
+        <p className="text-center text-xs text-(--color-text-muted)">
           未偵測到裝置，試試手動輸入 IP
         </p>
       )}
 
-      {scanError && <p className="text-center text-xs text-[--color-error]">{scanError}</p>}
+      {scanError && <p className="text-center text-xs text-(--color-error)">{scanError}</p>}
 
       {!isScanning && scanResults.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-[--color-text-muted]">偵測到的裝置</p>
+          <p className="text-xs text-(--color-text-muted)">偵測到的裝置</p>
           {scanResults
             .filter((d) => !pairedDeviceIds.has(d.id))
             .map((device) => (

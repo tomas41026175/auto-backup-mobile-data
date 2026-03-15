@@ -8,9 +8,12 @@ import type {
   BackupTask,
   Device,
   FuseStatus,
+  ICloudAlbum,
+  ICloudSyncStatus,
   PairedDevice,
   Settings,
-  UsbDevice
+  UsbDevice,
+  WindowsDriverStatus
 } from './types'
 
 /**
@@ -29,6 +32,12 @@ export interface IpcListenerChannels {
   'backup-complete-detail': [detail: BackupCompleteDetail]
   'backup-error': [error: BackupErrorDetail]
   'tray-update': [status: 'backing-up' | 'idle' | 'error']
+  'icloud-sync-progress': [status: ICloudSyncStatus]
+  'icloud-sync-2fa-required': [type: string]
+  'icloud-sync-complete': [result: { downloaded: number; skipped: number; bytesDownloaded: number }]
+  'icloud-sync-error': [error: { message: string }]
+  'icloud-albums': [albums: ICloudAlbum[]]
+  'icloud-album-update': [update: { name: string; count: number }]
 }
 
 /**
@@ -38,7 +47,7 @@ export interface IpcListenerChannels {
 export interface IpcHandlerChannels {
   'get-current-state': () => AppState
   'get-settings': () => Settings
-  'save-settings': (settings: Settings) => void
+  'save-settings': (settings: Partial<Settings>) => void
   'validate-path': (path: string) => boolean
   'scan-devices': () => Device[]
   'pair-device': (device: Device) => PairedDevice
@@ -51,5 +60,12 @@ export interface IpcHandlerChannels {
   'start-backup': (task: BackupTask) => void
   'cancel-backup': (deviceId: string) => void
   'get-history': () => BackupRecord[]
-  'check-macos-fuse': () => FuseStatus
+  'check-macos-fuse': () => FuseStatus | null
+  'check-windows-drivers': () => WindowsDriverStatus | null
+  'open-backup-folder': (folderPath: string) => void
+  'select-backup-path': () => string | null
+  'start-icloud-sync': (args: { appleId: string; password: string; destDir: string; album?: string }) => void
+  'cancel-icloud-sync': () => void
+  'submit-2fa-code': (code: string) => void
+  'get-icloud-status': () => ICloudSyncStatus
 }

@@ -24,10 +24,108 @@ import type {
 } from '../../shared/types'
 import type { SettingsStore } from './settings-store'
 import type { BackupHistoryStore } from './backup-history-store'
+import { resolveBinaryPaths } from '../utils/platform-utils'
 
 const execFile = promisify(execFileCb)
-const IDEVICE_BIN = '/opt/homebrew/bin'
 const DCIM_SUBDIR = 'DCIM'
+
+// ─── strategy interface ───────────────────────────────────────────────────────
+
+export interface IMountStrategy {
+  mount(deviceId: string): Promise<string>
+  unmount(handle: string): Promise<void>
+  listDcimFiles(handle: string): Promise<string[]>
+  isNewFile(rel: string, handle: string, destPath: string): boolean
+  transferFile(rel: string, handle: string, destPath: string): Promise<number>
+}
+
+// ─── macOS strategy ───────────────────────────────────────────────────────────
+
+export class MacOSMountStrategy implements IMountStrategy {
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(_idevicepairPath: string) {
+    // idevicepairPath reserved for future per-strategy pairing validation
+  }
+
+  async mount(deviceId: string): Promise<string> {
+    const mountPoint = mkdtempSync(join(tmpdir(), 'afc-backup-'))
+    const udidFlag = deviceId !== 'default' ? ['-u', deviceId] : []
+    await execFile('/opt/homebrew/bin/ifuse', [...udidFlag, mountPoint])
+    return mountPoint
+  }
+
+  async unmount(mountPoint: string): Promise<void> {
+    await execFile('umount', [mountPoint]).catch(async () => {
+      await execFile('diskutil', ['unmount', mountPoint]).catch(() => undefined)
+    })
+    safeRmdir(mountPoint)
+  }
+
+  listDcimFiles(mountPoint: string): Promise<string[]> {
+    const dcimPath = join(mountPoint, DCIM_SUBDIR)
+    return Promise.resolve(collectDcimFiles(dcimPath))
+  }
+
+  isNewFile(rel: string, mountPoint: string, destPath: string): boolean {
+    if (!existsSync(destPath)) return true
+    return statSync(join(mountPoint, DCIM_SUBDIR, rel)).size !== statSync(destPath).size
+  }
+
+  async transferFile(rel: string, mountPoint: string, destPath: string): Promise<number> {
+    return copyFileWithHash(join(mountPoint, DCIM_SUBDIR, rel), destPath)
+  }
+}
+
+// ─── Windows AFC strategy ─────────────────────────────────────────────────────
+
+export class WindowsAfcStrategy implements IMountStrategy {
+  private readonly afcclientPath: string
+  private readonly listDcimScriptPath: string
+
+  constructor(afcclientPath: string, listDcimScriptPath: string) {
+    this.afcclientPath = afcclientPath
+    this.listDcimScriptPath = listDcimScriptPath
+  }
+
+  async mount(deviceId: string): Promise<string> {
+    // No FUSE mount needed — return deviceId as the handle
+    return deviceId
+  }
+
+  async unmount(_handle: string): Promise<void> {
+    // No-op: afcclient is stateless
+  }
+
+  async listDcimFiles(handle: string): Promise<string[]> {
+    // Use pymobiledevice3 Python script — afcclient ls only lists directories, not files
+    try {
+      console.log('[WindowsAfcStrategy] listDcimFiles script:', this.listDcimScriptPath, 'udid:', handle)
+      const { stdout, stderr } = await execFile('python', [this.listDcimScriptPath, handle])
+      if (stderr) console.warn('[WindowsAfcStrategy] python stderr:', stderr)
+      console.log('[WindowsAfcStrategy] stdout length:', stdout.length)
+      const files = JSON.parse(stdout) as string[]
+      console.log('[WindowsAfcStrategy] file count:', files.length)
+      return files
+    } catch (err) {
+      console.error('[WindowsAfcStrategy] listDcimFiles failed:', err)
+      return []
+    }
+  }
+
+  isNewFile(_rel: string, _handle: string, destPath: string): boolean {
+    return !existsSync(destPath)
+  }
+
+  async transferFile(rel: string, handle: string, destPath: string): Promise<number> {
+    const deviceId = handle
+    const destDir = dirname(destPath)
+    mkdirSync(destDir, { recursive: true })
+    await execFile(this.afcclientPath, [
+      '-u', deviceId, '-n', 'get', `/DCIM/${rel}`, destDir
+    ])
+    return statSync(destPath).size
+  }
+}
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -52,11 +150,31 @@ export class AfcBackupManager extends EventEmitter implements BackupManager {
   private readonly settingsStore: SettingsStore
   private readonly historyStore: BackupHistoryStore
   private readonly activeJobs: Map<string, boolean> = new Map()
+  private readonly strategy: IMountStrategy
 
-  constructor(settingsStore: SettingsStore, historyStore: BackupHistoryStore) {
+  constructor(
+    settingsStore: SettingsStore,
+    historyStore: BackupHistoryStore,
+    strategy?: IMountStrategy
+  ) {
     super()
     this.settingsStore = settingsStore
     this.historyStore = historyStore
+    const paths = resolveBinaryPaths()
+    if (!strategy) {
+      if (process.platform === 'win32') {
+        const { app } = require('electron') as typeof import('electron')
+        const resourcesBase = app.isPackaged
+          ? process.resourcesPath
+          : join(app.getAppPath(), 'resources')
+        const scriptPath = join(resourcesBase, 'list_dcim.py')
+        this.strategy = new WindowsAfcStrategy(paths.afcclient, scriptPath)
+      } else {
+        this.strategy = new MacOSMountStrategy(paths.idevicepair)
+      }
+    } else {
+      this.strategy = strategy
+    }
   }
 
   async startBackup(task: BackupTask): Promise<void> {
@@ -87,18 +205,16 @@ export class AfcBackupManager extends EventEmitter implements BackupManager {
   }
 
   private async runWithMount(ctx: BackupContext): Promise<void> {
-    const mountPoint = mkdtempSync(join(tmpdir(), 'afc-backup-'))
-    let mounted = false
+    let handle: string | null = null
     let result: CopyResult = { fileCount: 0, bytesTransferred: 0 }
 
     try {
       await validatePairing(ctx.task.deviceId)
       this.pushProgress({ ...ctx.job, status: 'scanning' })
 
-      await mountIfuse(ctx.task.deviceId, mountPoint)
-      mounted = true
+      handle = await this.strategy.mount(ctx.task.deviceId)
 
-      result = await this.runTransfer(ctx, mountPoint)
+      result = await this.runTransfer(ctx, handle)
       this.pushProgress({ ...ctx.job, status: 'completing', progress: 100 })
       this.saveRecord(ctx, result, 'success')
     } catch (err) {
@@ -111,19 +227,26 @@ export class AfcBackupManager extends EventEmitter implements BackupManager {
       this.saveRecord(ctx, result, status)
     } finally {
       this.activeJobs.delete(ctx.task.deviceId)
-      if (mounted) await unmountIfuse(mountPoint)
-      safeRmdir(mountPoint)
+      if (handle !== null) await this.strategy.unmount(handle)
     }
   }
 
-  private async runTransfer(ctx: BackupContext, mountPoint: string): Promise<CopyResult> {
-    const dcimPath = join(mountPoint, DCIM_SUBDIR)
+  private async runTransfer(ctx: BackupContext, handle: string): Promise<CopyResult> {
     const destBase = join(ctx.backupPath, ctx.task.deviceId, 'DCIM')
     mkdirSync(destBase, { recursive: true })
 
-    const files = collectDcimFiles(dcimPath)
-    const pending = filterNewFiles(files, dcimPath, destBase)
+    const files = await this.strategy.listDcimFiles(handle)
+    const pending = files.filter((rel) => {
+      const destPath = join(destBase, rel)
+      return this.strategy.isNewFile(rel, handle, destPath)
+    })
     const total = pending.length
+
+    if (total === 0) {
+      // All files already backed up — nothing to transfer
+      this.pushProgress({ ...ctx.job, status: 'completing', progress: 100 })
+      return { fileCount: 0, bytesTransferred: 0 }
+    }
 
     this.pushProgress({ ...ctx.job, status: 'transferring', progress: 0 })
 
@@ -132,7 +255,8 @@ export class AfcBackupManager extends EventEmitter implements BackupManager {
 
     for (const rel of pending) {
       if (ctx.isCancelled()) break
-      const bytes = await copyFileWithHash(join(dcimPath, rel), join(destBase, rel))
+      const destPath = join(destBase, rel)
+      const bytes = await this.strategy.transferFile(rel, handle, destPath)
       bytesTransferred += bytes
       fileCount++
       const progress = total > 0 ? Math.round((fileCount / total) * 100) : 100
@@ -202,7 +326,7 @@ function buildRecord(
     deviceId: task.deviceId,
     deviceName,
     completedAt: new Date().toISOString(),
-    duration: Date.now() - startTime,
+    duration: Math.round((Date.now() - startTime) / 1000),
     fileCount: result.fileCount,
     bytesTransferred: result.bytesTransferred,
     status,
@@ -212,20 +336,12 @@ function buildRecord(
 }
 
 async function validatePairing(deviceId: string): Promise<void> {
+  // On Windows, idevicepair has no -n flag for WiFi; skip validation —
+  // listDcimFiles will fail naturally if the device is unreachable.
+  if (process.platform === 'win32') return
   const udidFlag = deviceId !== 'default' ? ['-u', deviceId] : []
-  await execFile(`${IDEVICE_BIN}/idevicepair`, [...udidFlag, 'validate'])
-}
-
-async function mountIfuse(deviceId: string, mountPoint: string): Promise<void> {
-  // AFC root 掛載（com.apple.afc service）：直接存取 DCIM
-  const udidFlag = deviceId !== 'default' ? ['-u', deviceId] : []
-  await execFile('/opt/homebrew/bin/ifuse', [...udidFlag, mountPoint])
-}
-
-async function unmountIfuse(mountPoint: string): Promise<void> {
-  await execFile('umount', [mountPoint]).catch(async () => {
-    await execFile('diskutil', ['unmount', mountPoint]).catch(() => undefined)
-  })
+  const paths = resolveBinaryPaths()
+  await execFile(paths.idevicepair, [...udidFlag, 'validate'])
 }
 
 function safeRmdir(path: string): void {
@@ -250,14 +366,6 @@ function collectDcimFiles(dcimPath: string): string[] {
     }
   }
   return results
-}
-
-function filterNewFiles(files: string[], srcBase: string, destBase: string): string[] {
-  return files.filter((rel) => {
-    const dest = join(destBase, rel)
-    if (!existsSync(dest)) return true
-    return statSync(join(srcBase, rel)).size !== statSync(dest).size
-  })
 }
 
 async function copyFileWithHash(src: string, dest: string): Promise<number> {

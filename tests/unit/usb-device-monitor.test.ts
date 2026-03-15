@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EventEmitter } from 'events'
 
+// ── platform-utils mock ───────────────────────────────────────────────────────
+vi.mock('../../src/main/utils/platform-utils', () => ({
+  resolveBinaryPaths: vi.fn().mockReturnValue({
+    idevicepair: '/opt/homebrew/bin/idevicepair',
+    ideviceinfo: '/opt/homebrew/bin/ideviceinfo',
+    idevice_id: '/opt/homebrew/bin/idevice_id',
+    afcclient: '/opt/homebrew/bin/afcclient',
+  }),
+  getTempDir: vi.fn().mockReturnValue('/tmp'),
+}))
+
 // ── usb mock ──────────────────────────────────────────────────────────────────
 // node-usb 模組層級事件（attach / detach）由 usbEmitter 代理
 const usbEmitter = new EventEmitter()

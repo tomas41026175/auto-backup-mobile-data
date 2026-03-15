@@ -32,7 +32,7 @@ export function ManualDeviceInput({ onDeviceAdded }: ManualDeviceInputProps): Re
     setProbeError(null)
     setPendingDevice(null)
     if (value && !isValidIpv4(value)) {
-      setIpError('IP 格式不正確，請輸入有效的 IPv4 位址（如：192.168.1.50）')
+      setIpError('IP 格式不正確，請輸入正確的 IPv4 位址（例：192.168.1.50）')
     } else {
       setIpError(null)
     }
@@ -41,7 +41,7 @@ export function ManualDeviceInput({ onDeviceAdded }: ManualDeviceInputProps): Re
   async function handleProbe(): Promise<void> {
     if (!ip.trim()) return
     if (!isValidIpv4(ip)) {
-      setIpError('IP 格式不正確，請輸入有效的 IPv4 位址（如：192.168.1.50）')
+      setIpError('IP 格式不正確，請輸入正確的 IPv4 位址（例：192.168.1.50）')
       return
     }
 
@@ -58,7 +58,7 @@ export function ManualDeviceInput({ onDeviceAdded }: ManualDeviceInputProps): Re
       setPendingDevice(device)
       setProbeSuccess(true)
     } catch {
-      setProbeError('無法連線，請確認 IP 正確且裝置在同一網路')
+      setProbeError('探測失敗，請確認 IP 正確且裝置在同一網路')
     } finally {
       setIsProbing(false)
     }
@@ -79,8 +79,8 @@ export function ManualDeviceInput({ onDeviceAdded }: ManualDeviceInputProps): Re
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-[--color-text-muted]">
-        當 mDNS 無法偵測時，可手動輸入 iPhone 的 IP 位址
+      <p className="text-xs text-(--color-text-muted)">
+        如 mDNS 偵測無效，可手動輸入 iPhone 的 IP 位址
       </p>
 
       <Input
@@ -120,15 +120,15 @@ export function ManualDeviceInput({ onDeviceAdded }: ManualDeviceInputProps): Re
       </div>
 
       {probeSuccess && (
-        <div className="flex items-center justify-between rounded-lg bg-[--color-success-subtle] px-3 py-2">
-          <p className="text-xs font-medium text-[--color-success]">探測成功：已找到 Apple 裝置</p>
+        <div className="flex items-center justify-between rounded-lg bg-(--color-success-subtle) px-3 py-2">
+          <p className="text-xs font-medium text-(--color-success)">探測成功：已找到 Apple 裝置</p>
           <Button variant="primary" size="sm" onClick={handleAddDevice}>
-            新增為配對裝置
+            新增配對裝置
           </Button>
         </div>
       )}
 
-      {probeError && <p className="text-xs text-[--color-error]">{probeError}</p>}
+      {probeError && <p className="text-xs text-(--color-error)">{probeError}</p>}
     </div>
   )
 }

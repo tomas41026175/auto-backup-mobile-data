@@ -2,10 +2,9 @@ import { EventEmitter } from 'events'
 import { execFile } from 'child_process'
 import * as usbLib from 'usb'
 import type { UsbDeviceInfo } from '../../shared/types'
+import { resolveBinaryPaths } from '../utils/platform-utils'
 
 const APPLE_VENDOR_ID = 0x05ac
-const IDEVICE_ID_PATH = '/opt/homebrew/bin/idevice_id'
-const IDEVICEINFO_PATH = '/opt/homebrew/bin/ideviceinfo'
 
 export interface UsbDeviceMonitorEvents {
   'usb-device-connected': (info: UsbDeviceInfo) => void
@@ -58,18 +57,21 @@ function parseIdeviceinfoValue(stdout: string, key: string): string {
   return ''
 }
 
-async function getUdid(): Promise<string | null> {
+async function getUdid(ideviceIdPath: string): Promise<string | null> {
   try {
-    const { stdout } = await runCli(IDEVICE_ID_PATH, ['-l'])
+    const { stdout } = await runCli(ideviceIdPath, ['-l'])
     return parseUdid(stdout)
   } catch {
     return null
   }
 }
 
-async function getDeviceInfo(udid: string): Promise<{ name: string; iosVersion: string }> {
+async function getDeviceInfo(
+  ideviceinfoPath: string,
+  udid: string
+): Promise<{ name: string; iosVersion: string }> {
   try {
-    const { stdout } = await runCli(IDEVICEINFO_PATH, ['-u', udid])
+    const { stdout } = await runCli(ideviceinfoPath, ['-u', udid])
     const name = parseIdeviceinfoValue(stdout, 'DeviceName')
     const iosVersion = parseIdeviceinfoValue(stdout, 'ProductVersion')
     return { name: name || 'Unknown iPhone', iosVersion: iosVersion || '' }
@@ -83,6 +85,7 @@ function isAppleDevice(device: usbLib.usb.Device): boolean {
 }
 
 export function createUsbDeviceMonitor(): UsbDeviceMonitor {
+  const paths = resolveBinaryPaths()
   const emitter = new EventEmitter() as UsbDeviceMonitor
 
   // Track connected Apple USB devices: busNumber-deviceAddress key → udid
@@ -101,10 +104,10 @@ export function createUsbDeviceMonitor(): UsbDeviceMonitor {
     // Wait briefly for the OS to enumerate the device before calling CLI
     await new Promise<void>((resolve) => setTimeout(resolve, 1500))
 
-    const udid = await getUdid()
+    const udid = await getUdid(paths.idevice_id)
     if (!udid) return
 
-    const { name, iosVersion } = await getDeviceInfo(udid)
+    const { name, iosVersion } = await getDeviceInfo(paths.ideviceinfo, udid)
 
     connectedDevices.set(key, udid)
 

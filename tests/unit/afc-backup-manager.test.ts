@@ -1,6 +1,24 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
 
 // ─── mock 宣告必須在 import 前 ────────────────────────────────────────────────
+
+vi.mock('../../../src/main/utils/platform-utils', () => ({
+  resolveBinaryPaths: vi.fn().mockReturnValue({
+    idevicepair: '/opt/homebrew/bin/idevicepair',
+    ideviceinfo: '/opt/homebrew/bin/ideviceinfo',
+    idevice_id: '/opt/homebrew/bin/idevice_id',
+    afcclient: '/opt/homebrew/bin/afcclient',
+  }),
+  getTempDir: vi.fn().mockReturnValue('/tmp'),
+}))
+
+// 強制 darwin，使 constructor 選用 MacOSMountStrategy（測試以 macOS 策略驗證）
+beforeAll(() => {
+  Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
+})
+afterAll(() => {
+  Object.defineProperty(process, 'platform', { value: 'win32', configurable: true })
+})
 
 // execFile 是 callback-style，mock 需要呼叫最後一個參數（callback）
 vi.mock('child_process', () => ({

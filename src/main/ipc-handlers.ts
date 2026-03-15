@@ -1,6 +1,7 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app, shell, type App as ElectronApp } from 'electron'
 import * as fs from 'fs'
 import * as net from 'net'
+import * as path from 'path'
 import { execFile as execFileCb } from 'child_process'
 import { promisify } from 'util'
 
@@ -10,6 +11,7 @@ import type { SettingsStore } from './services/settings-store'
 import type { BackupHistoryStore } from './services/backup-history-store'
 import type { DeviceScanner } from './services/device-scanner'
 import type { BackupManager } from '../shared/types'
+import type { ICloudSyncManager } from './services/icloud-sync-manager'
 
 const SCAN_TIMEOUT_MS = 10_000
 const TCP_CONNECT_TIMEOUT_MS = 3_000
@@ -20,19 +22,24 @@ interface SetupIpcHandlersOptions {
   backupHistoryStore: BackupHistoryStore
   deviceScanner: DeviceScanner
   backupManager: BackupManager
+  icloudSyncManager: ICloudSyncManager
 }
 
 export function setupIpcHandlers({
   settingsStore,
   backupHistoryStore,
   deviceScanner,
-  backupManager
+  backupManager,
+  icloudSyncManager
 }: SetupIpcHandlersOptions): void {
   // get-current-state
-  ipcMain.handle('get-current-state', () => {
-    // renderer 負責追蹤 push events，devices 初始為空
+  ipcMain.handle('get-current-state', async () => {
+    // On Windows, scan via libimobiledevice for initial state
+    const devices: Device[] = process.platform === 'win32'
+      ? await scanDevicesWindows(app)
+      : []
     return {
-      devices: [] as Device[],
+      devices,
       currentBackup: null,
       status: 'idle' as const,
       mdnsAvailable: deviceScanner.mdnsAvailable
@@ -45,7 +52,7 @@ export function setupIpcHandlers({
   })
 
   // save-settings
-  ipcMain.handle('save-settings', (_event, settings: Settings) => {
+  ipcMain.handle('save-settings', (_event, settings: Partial<Settings>) => {
     settingsStore.saveSettings(settings)
   })
 
@@ -56,6 +63,9 @@ export function setupIpcHandlers({
 
   // scan-devices
   ipcMain.handle('scan-devices', async () => {
+    if (process.platform === 'win32') {
+      return scanDevicesWindows(app)
+    }
     const timeoutPromise = new Promise<Device[]>((resolve) =>
       setTimeout(() => resolve([]), SCAN_TIMEOUT_MS)
     )
@@ -122,6 +132,7 @@ export function setupIpcHandlers({
   // installed: filesystem bundle 存在
   // approved:  kextstat 顯示 macFUSE kext 已載入（代表用戶已在隱私與安全性中核准）
   ipcMain.handle('check-macos-fuse', async () => {
+    if (process.platform !== 'darwin') return null
     const installed = fs.existsSync('/Library/Filesystems/macfuse.fs')
     let approved = false
     if (installed) {
@@ -134,6 +145,97 @@ export function setupIpcHandlers({
     }
     return { installed, approved }
   })
+
+  // open-backup-folder
+  ipcMain.handle('open-backup-folder', async (_event, folderPath: string) => {
+    // Ensure the folder exists before opening
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true })
+    }
+    const err = await shell.openPath(folderPath)
+    if (err) console.error('[open-backup-folder] shell.openPath error:', err)
+  })
+
+  // check-windows-drivers
+  ipcMain.handle('check-windows-drivers', async () => {
+    if (process.platform !== 'win32') return null
+
+    // winfsp: check C:\Program Files (x86)\WinFsp exists
+    const winfsp = fs.existsSync('C:\\Program Files (x86)\\WinFsp')
+
+    // appleMobileDevice: check service 'Apple Mobile Device Service' is RUNNING
+    let appleMobileDevice = false
+    try {
+      const { stdout } = await execFile('sc.exe', ['query', 'Apple Mobile Device Service'])
+      appleMobileDevice = stdout.includes('RUNNING')
+    } catch {
+      appleMobileDevice = false
+    }
+
+    // libimobiledevice: check afcclient.exe in extraResources (dev: project resources/, prod: process.resourcesPath)
+    const libBase = app.isPackaged
+      ? path.join(process.resourcesPath, 'win', 'libimobiledevice')
+      : path.join(app.getAppPath(), 'resources', 'win', 'libimobiledevice')
+    const afcclientPath = path.join(libBase, 'afcclient.exe')
+    const libimobiledevice = fs.existsSync(afcclientPath)
+
+    return { winfsp, appleMobileDevice, libimobiledevice }
+  })
+
+  // start-icloud-sync
+  ipcMain.handle('start-icloud-sync', (_event, args: { appleId: string; password: string; destDir: string; album?: string }) => {
+    icloudSyncManager.start(args.appleId, args.password, args.destDir, args.album)
+  })
+
+  // cancel-icloud-sync
+  ipcMain.handle('cancel-icloud-sync', () => {
+    icloudSyncManager.cancel()
+  })
+
+  // submit-2fa-code
+  ipcMain.handle('submit-2fa-code', (_event, code: string) => {
+    icloudSyncManager.submitTwoFACode(code)
+  })
+
+  // get-icloud-status
+  ipcMain.handle('get-icloud-status', () => {
+    return icloudSyncManager.getStatus()
+  })
+}
+
+async function scanDevicesWindows(appRef: ElectronApp): Promise<Device[]> {
+  const libBase = appRef.isPackaged
+    ? path.join(process.resourcesPath, 'win', 'libimobiledevice')
+    : path.join(appRef.getAppPath(), 'resources', 'win', 'libimobiledevice')
+
+  const ideviceIdPath = path.join(libBase, 'idevice_id.exe')
+  const ideviceinfoPath = path.join(libBase, 'ideviceinfo.exe')
+
+  let udids: string[]
+  try {
+    const { stdout } = await execFile(ideviceIdPath, ['-l', '-n'])
+    udids = stdout.trim().split('\n').map((l) => l.trim().split(' ')[0]).filter((l) => l.length > 0)
+  } catch {
+    return []
+  }
+
+  const devices: Device[] = []
+  for (const udid of udids) {
+    let name = 'iPhone'
+    try {
+      const { stdout: info } = await execFile(ideviceinfoPath, ['-u', udid])
+      for (const line of info.split('\n')) {
+        const trimmed = line.trim()
+        if (trimmed.startsWith('DeviceName:')) {
+          name = trimmed.slice('DeviceName:'.length).trim() || 'iPhone'
+          break
+        }
+      }
+    } catch { /* use default name */ }
+
+    devices.push({ id: udid, name, ip: '', serviceType: 'wifi', paired: false })
+  }
+  return devices
 }
 
 function tcpProbe(ip: string, port: number, timeoutMs: number): Promise<boolean> {

@@ -21,8 +21,13 @@ export function createBackupHistoryStore(): BackupHistoryStore {
 
   function getHistory(): BackupRecord[] {
     const records = store.get('records', [])
+    // Migrate old records that stored duration in ms instead of seconds.
+    // A backup taking more than 1 day (86400s) is unrealistic — treat as ms.
+    const migrated = records.map((r) =>
+      r.duration > 86400 ? { ...r, duration: Math.round(r.duration / 1000) } : r
+    )
     // 依 completedAt 降序排列
-    return [...records].sort(
+    return [...migrated].sort(
       (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
     )
   }

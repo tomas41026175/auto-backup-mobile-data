@@ -21,6 +21,8 @@ interface StoredSettings {
   backupPath: string
   pairedDevices: StoredPairedDevice[]
   autoStart: boolean
+  icloudAppleId?: string
+  icloudPassword?: string
 }
 
 // electron-conf store instance（GC 防護：模組層級）
@@ -33,7 +35,9 @@ function deserializeSettings(stored: StoredSettings): Settings {
     pairedDevices: stored.pairedDevices.map((d) => ({
       ...d,
       syncTypes: Array.isArray(d.syncTypes) ? d.syncTypes : DEFAULT_SYNC_TYPES
-    }))
+    })),
+    icloudAppleId: stored.icloudAppleId,
+    icloudPassword: stored.icloudPassword
   }
 }
 
@@ -44,7 +48,9 @@ function serializeSettings(settings: Settings): StoredSettings {
     pairedDevices: settings.pairedDevices.map((d) => ({
       ...d,
       syncTypes: Array.from(d.syncTypes) // 永遠存成 Array
-    }))
+    })),
+    icloudAppleId: settings.icloudAppleId,
+    icloudPassword: settings.icloudPassword
   }
 }
 
@@ -72,7 +78,9 @@ export function createSettingsStore(): SettingsStore {
     const stored: StoredSettings = {
       backupPath: store.get('backupPath', DEFAULT_SETTINGS.backupPath),
       pairedDevices: store.get('pairedDevices', []),
-      autoStart: store.get('autoStart', false)
+      autoStart: store.get('autoStart', false),
+      icloudAppleId: store.get('icloudAppleId', undefined),
+      icloudPassword: store.get('icloudPassword', undefined)
     }
     return deserializeSettings(stored)
   }
@@ -84,6 +92,8 @@ export function createSettingsStore(): SettingsStore {
     store.set('backupPath', serialized.backupPath)
     store.set('pairedDevices', serialized.pairedDevices)
     store.set('autoStart', serialized.autoStart)
+    if (serialized.icloudAppleId !== undefined) store.set('icloudAppleId', serialized.icloudAppleId)
+    if (serialized.icloudPassword !== undefined) store.set('icloudPassword', serialized.icloudPassword)
     return updated
   }
 
@@ -98,7 +108,8 @@ export function createSettingsStore(): SettingsStore {
       ip: device.ip,
       addedAt: new Date().toISOString(),
       syncDirection: device.syncDirection ?? 'mobile-to-pc',
-      syncTypes: device.syncTypes ?? [...DEFAULT_SYNC_TYPES]
+      syncTypes: device.syncTypes ?? [...DEFAULT_SYNC_TYPES],
+      autoBackup: false
     }
     const updated: Settings = {
       ...current,
